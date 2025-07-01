@@ -1,51 +1,61 @@
-import React, { createContext, useContext } from 'react';
-import { toast, ToastContent, ToastOptions } from 'react-toastify';
-import { AlertColor } from '@mui/material';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { Snackbar } from 'react-native-paper';
 
 interface SnackbarContextType {
-  showSnackbar: (message: ToastContent, severity: AlertColor) => void;
+  showSnackbar: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void;
+  hideSnackbar: () => void;
 }
 
 const SnackbarContext = createContext<SnackbarContextType>({
   showSnackbar: () => {},
+  hideSnackbar: () => {},
 });
 
 export const useSnackbar = () => useContext(SnackbarContext);
 
-export const SnackbarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const showSnackbar = (message: ToastContent, severity: AlertColor) => {
-    const options: ToastOptions = {
-      position: "top-center",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "colored",
-    };
+interface SnackbarProviderProps {
+  children: ReactNode;
+}
 
-    switch (severity) {
+export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({ children }) => {
+  const [visible, setVisible] = useState(false);
+  const [message, setMessage] = useState('');
+  const [type, setType] = useState<'success' | 'error' | 'warning' | 'info'>('info');
+
+  const showSnackbar = (msg: string, msgType: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setMessage(msg);
+    setType(msgType);
+    setVisible(true);
+  };
+
+  const hideSnackbar = () => {
+    setVisible(false);
+  };
+
+  const getSnackbarColor = () => {
+    switch (type) {
       case 'success':
-        toast.success(message, options);
-        break;
+        return '#388E3C';
       case 'error':
-        toast.error(message, options);
-        break;
+        return '#D32F2F';
       case 'warning':
-        toast.warning(message, options);
-        break;
-      case 'info':
-        toast.info(message, options);
-        break;
+        return '#F57C00';
       default:
-        toast(message, options);
+        return '#0288D1';
     }
   };
 
   return (
-    <SnackbarContext.Provider value={{ showSnackbar }}>
+    <SnackbarContext.Provider value={{ showSnackbar, hideSnackbar }}>
       {children}
+      <Snackbar
+        visible={visible}
+        onDismiss={hideSnackbar}
+        duration={3000}
+        style={{ backgroundColor: getSnackbarColor() }}
+      >
+        {message}
+      </Snackbar>
     </SnackbarContext.Provider>
   );
 };
