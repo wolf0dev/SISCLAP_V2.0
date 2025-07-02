@@ -8,19 +8,17 @@ import {
   Image,
 } from 'react-native';
 import {
-  TextInput,
-  Button,
-  Text,
   Card,
   Title,
   Paragraph,
-  HelperText,
+  Button,
 } from 'react-native-paper';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSnackbar } from '../../contexts/SnackbarContext';
 import { colors } from '../../theme/theme';
+import FormInput from '../../components/forms/FormInput';
 
 const LoginScreen = () => {
   const { login } = useAuth();
@@ -71,40 +69,32 @@ const LoginScreen = () => {
               Sistema de Gestión de Beneficios
             </Paragraph>
 
-            <TextInput
+            <FormInput
               label="Nombre de Usuario"
               value={formik.values.username}
               onChangeText={formik.handleChange('username')}
               onBlur={formik.handleBlur('username')}
-              error={formik.touched.username && Boolean(formik.errors.username)}
-              style={styles.input}
-              mode="outlined"
+              error={formik.errors.username}
+              touched={formik.touched.username}
               disabled={loading}
             />
-            <HelperText type="error" visible={formik.touched.username && Boolean(formik.errors.username)}>
-              {formik.errors.username}
-            </HelperText>
 
-            <TextInput
+            <FormInput
               label="Contraseña"
               value={formik.values.password}
               onChangeText={formik.handleChange('password')}
               onBlur={formik.handleBlur('password')}
-              error={formik.touched.password && Boolean(formik.errors.password)}
+              error={formik.errors.password}
+              touched={formik.touched.password}
               secureTextEntry={!showPassword}
+              disabled={loading}
               right={
                 <TextInput.Icon
                   icon={showPassword ? 'eye-off' : 'eye'}
                   onPress={() => setShowPassword(!showPassword)}
                 />
               }
-              style={styles.input}
-              mode="outlined"
-              disabled={loading}
             />
-            <HelperText type="error" visible={formik.touched.password && Boolean(formik.errors.password)}>
-              {formik.errors.password}
-            </HelperText>
 
             <Button
               mode="contained"
@@ -119,9 +109,9 @@ const LoginScreen = () => {
           </Card.Content>
         </Card>
 
-        <Text style={styles.footer}>
+        <Paragraph style={styles.footer}>
           Brisas del Orinoco II - Sistema de Gestión de Beneficios
-        </Text>
+        </Paragraph>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -159,9 +149,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
     color: colors.textSecondary,
-  },
-  input: {
-    marginBottom: 8,
   },
   button: {
     marginTop: 16,

@@ -1,4 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { Card, Title, Paragraph } from 'react-native-paper';
+import { colors } from '../../src/theme/theme';
 
 export default function ReportesScreen() {
   return (
@@ -9,7 +11,12 @@ export default function ReportesScreen() {
       </View>
       
       <View style={styles.content}>
-        <Text style={styles.message}>Funcionalidad en desarrollo</Text>
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title>Funcionalidad en desarrollo</Title>
+            <Paragraph>Esta sección estará disponible próximamente.</Paragraph>
+          </Card.Content>
+        </Card>
       </View>
     </View>
   );
@@ -18,22 +25,22 @@ export default function ReportesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: '#FF4040',
+    backgroundColor: colors.primary,
     padding: 24,
     paddingTop: 60,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
-    color: '#fff',
+    color: colors.white,
     opacity: 0.9,
   },
   content: {
@@ -42,9 +49,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  message: {
-    fontSize: 18,
-    color: '#757575',
-    textAlign: 'center',
+  card: {
+    width: '100%',
+    elevation: 2,
   },
 });

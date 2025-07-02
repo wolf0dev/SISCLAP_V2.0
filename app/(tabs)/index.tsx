@@ -1,5 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Card, Title, Paragraph, Avatar } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../src/theme/theme';
 
 export default function HomeScreen() {
   const menuItems = [
@@ -40,30 +42,36 @@ export default function HomeScreen() {
 
       {/* Menu Grid */}
       <View style={styles.menuContainer}>
-        <Text style={styles.menuTitle}>Funcionalidades</Text>
+        <Title style={styles.menuTitle}>Funcionalidades</Title>
         <View style={styles.menuGrid}>
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.menuItem, { backgroundColor: item.color }]}
+              style={styles.menuItem}
               activeOpacity={0.8}
             >
-              <Ionicons name={item.icon as any} size={32} color="#fff" />
-              <Text style={styles.menuItemTitle}>{item.title}</Text>
-              <Text style={styles.menuItemDescription}>{item.description}</Text>
+              <Card style={[styles.menuCard, { backgroundColor: item.color }]}>
+                <Card.Content style={styles.menuCardContent}>
+                  <Ionicons name={item.icon as any} size={32} color="#fff" />
+                  <Title style={styles.menuItemTitle}>{item.title}</Title>
+                  <Paragraph style={styles.menuItemDescription}>{item.description}</Paragraph>
+                </Card.Content>
+              </Card>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
       {/* Info Section */}
-      <View style={styles.infoSection}>
-        <Text style={styles.infoTitle}>Acerca del Sistema</Text>
-        <Text style={styles.infoText}>
-          El Sistema de Gestión de Beneficios es una herramienta diseñada para facilitar
-          la administración de beneficiarios y sus dependientes en la comunidad Brisas del Orinoco II.
-        </Text>
-      </View>
+      <Card style={styles.infoCard}>
+        <Card.Content>
+          <Title style={styles.infoTitle}>Acerca del Sistema</Title>
+          <Paragraph style={styles.infoText}>
+            El Sistema de Gestión de Beneficios es una herramienta diseñada para facilitar
+            la administración de beneficiarios y sus dependientes en la comunidad Brisas del Orinoco II.
+          </Paragraph>
+        </Card.Content>
+      </Card>
     </ScrollView>
   );
 }
@@ -71,10 +79,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: '#FF4040',
+    backgroundColor: colors.primary,
     padding: 24,
     paddingTop: 60,
     borderBottomLeftRadius: 20,
@@ -83,18 +91,18 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 18,
-    color: '#fff',
+    color: colors.white,
     opacity: 0.9,
     marginBottom: 4,
   },
   description: {
     fontSize: 16,
-    color: '#fff',
+    color: colors.white,
     opacity: 0.8,
   },
   menuContainer: {
@@ -103,7 +111,7 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#212121',
+    color: colors.text,
     marginBottom: 16,
   },
   menuGrid: {
@@ -113,50 +121,43 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     width: '48%',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
     marginBottom: 16,
+  },
+  menuCard: {
+    borderRadius: 12,
     elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  },
+  menuCardContent: {
+    alignItems: 'center',
+    padding: 20,
   },
   menuItemTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
     marginTop: 12,
     marginBottom: 4,
     textAlign: 'center',
   },
   menuItemDescription: {
     fontSize: 12,
-    color: '#fff',
+    color: colors.white,
     opacity: 0.9,
     textAlign: 'center',
   },
-  infoSection: {
+  infoCard: {
     margin: 20,
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   infoTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#212121',
+    color: colors.text,
     marginBottom: 12,
   },
   infoText: {
     fontSize: 14,
-    color: '#757575',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 });
