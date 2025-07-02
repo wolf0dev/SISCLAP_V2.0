@@ -15,7 +15,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.brisasorinoco.beneficios"
     },
     "android": {
       "adaptiveIcon": {
@@ -31,11 +32,19 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "sistema-beneficios",
     "extra": {
+      "router": {
+        "origin": false
+      },
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
       }
     }
   }
