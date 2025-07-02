@@ -8,7 +8,7 @@ export interface Dependiente {
   grado_instruccion: string;
   enfermedad_cronica: string;
   discapacidad: string;
-  genero: string;
+  genero: string; // Corregido: string en lugar de number
   telefono: string;
   estado_civil: string;
   parentesco: string;

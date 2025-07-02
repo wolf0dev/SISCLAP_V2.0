@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Card, Title, Paragraph, Button } from 'react-native-paper';
-import { colors } from '../../theme/theme';
+import { Box, Typography, Button } from '@mui/material';
+import { FileQuestion } from 'lucide-react';
 
 interface EmptyStateProps {
   title: string;
@@ -16,59 +15,34 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   description,
   actionText,
   onAction,
-  icon,
+  icon = <FileQuestion size={80} />,
 }) => {
   return (
-    <View style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content style={styles.content}>
-          {icon && <View style={styles.iconContainer}>{icon}</View>}
-          <Title style={styles.title}>{title}</Title>
-          <Paragraph style={styles.description}>{description}</Paragraph>
-          {actionText && onAction && (
-            <Button mode="contained" onPress={onAction} style={styles.button}>
-              {actionText}
-            </Button>
-          )}
-        </Card.Content>
-      </Card>
-    </View>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        py: 8,
+        px: 2,
+      }}
+    >
+      <Box sx={{ color: 'text.secondary', mb: 2 }}>{icon}</Box>
+      <Typography variant="h5" component="h2" gutterBottom>
+        {title}
+      </Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 500 }}>
+        {description}
+      </Typography>
+      {actionText && onAction && (
+        <Button variant="contained" color="primary" onClick={onAction}>
+          {actionText}
+        </Button>
+      )}
+    </Box>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 400,
-    elevation: 2,
-  },
-  content: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  iconContainer: {
-    marginBottom: 16,
-    opacity: 0.6,
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: 8,
-    color: colors.text,
-  },
-  description: {
-    textAlign: 'center',
-    color: colors.textSecondary,
-    marginBottom: 20,
-  },
-  button: {
-    marginTop: 8,
-  },
-});
 
 export default EmptyState;
