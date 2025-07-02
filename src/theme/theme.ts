@@ -1,21 +1,3 @@
-import { DefaultTheme } from 'react-native-paper';
-
-export const theme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: '#FF4040',
-    accent: '#FF6B6B',
-    background: '#F5F5F5',
-    surface: '#FFFFFF',
-    text: '#212121',
-    error: '#D32F2F',
-    success: '#388E3C',
-    warning: '#F57C00',
-    info: '#0288D1',
-  },
-};
-
 export const colors = {
   primary: '#FF4040',
   primaryLight: '#FF6B6B',
@@ -33,4 +15,41 @@ export const colors = {
   black: '#000000',
   gray: '#9E9E9E',
   lightGray: '#F5F5F5',
+};
+
+export const theme = {
+  colors: {
+    primary: colors.primary,
+    primaryContainer: colors.primaryLight,
+    secondary: colors.secondary,
+    secondaryContainer: colors.secondary + '20',
+    tertiary: colors.info,
+    tertiaryContainer: colors.info + '20',
+    surface: colors.surface,
+    surfaceVariant: colors.lightGray,
+    surfaceDisabled: colors.gray + '20',
+    background: colors.background,
+    error: colors.error,
+    errorContainer: colors.error + '20',
+    onPrimary: colors.white,
+    onPrimaryContainer: colors.primaryDark,
+    onSecondary: colors.white,
+    onSecondaryContainer: colors.secondary,
+    onTertiary: colors.white,
+    onTertiaryContainer: colors.info,
+    onSurface: colors.text,
+    onSurfaceVariant: colors.textSecondary,
+    onSurfaceDisabled: colors.gray,
+    onError: colors.white,
+    onErrorContainer: colors.error,
+    onBackground: colors.text,
+    outline: colors.gray,
+    outlineVariant: colors.lightGray,
+    inverseSurface: colors.text,
+    inverseOnSurface: colors.white,
+    inversePrimary: colors.primaryLight,
+    shadow: colors.black,
+    scrim: colors.black,
+    backdrop: colors.black + '40',
+  },
 };

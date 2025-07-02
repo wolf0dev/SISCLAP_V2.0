@@ -15,14 +15,12 @@ import {
   Chip,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { colors } from '../../theme/theme';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
   const { user, isLiderComunidad, isJefeCalle } = useAuth();
 
   const getGreeting = () => {
@@ -50,7 +48,6 @@ const HomeScreen = () => {
       description: 'Gestionar beneficiarios del sistema',
       icon: 'people-outline',
       color: colors.primary,
-      onPress: () => navigation.navigate('Beneficiarios' as never),
       roles: [1, 2],
     },
     {
@@ -58,15 +55,6 @@ const HomeScreen = () => {
       description: 'Gestionar dependientes de beneficiarios',
       icon: 'person-add-outline',
       color: colors.primaryLight,
-      onPress: () => navigation.navigate('Dependientes' as never),
-      roles: [1, 2],
-    },
-    {
-      title: 'Beneficiarios Inactivos',
-      description: 'Ver y reactivar beneficiarios inactivos',
-      icon: 'person-remove-outline',
-      color: colors.error,
-      onPress: () => navigation.navigate('BeneficiariosInactivos' as never),
       roles: [1, 2],
     },
     {
@@ -74,15 +62,13 @@ const HomeScreen = () => {
       description: 'Generar reportes del sistema',
       icon: 'document-text-outline',
       color: colors.info,
-      onPress: () => navigation.navigate('Reportes' as never),
       roles: [1, 2],
     },
     {
-      title: 'Gestión de Usuarios',
-      description: 'Administrar usuarios del sistema',
+      title: 'Configuración',
+      description: 'Configurar el sistema',
       icon: 'settings-outline',
       color: colors.secondary,
-      onPress: () => navigation.navigate('Users' as never),
       roles: [1],
     },
   ];
@@ -105,7 +91,7 @@ const HomeScreen = () => {
               </Title>
               <Chip
                 style={[styles.roleChip, { backgroundColor: getRoleColor() }]}
-                textStyle={styles.roleChipText}
+                textColor={colors.white}
               >
                 {getRoleLabel()}
               </Chip>
@@ -117,7 +103,7 @@ const HomeScreen = () => {
               Bienvenido al sistema de gestión de beneficiarios de Brisas del Orinoco II
             </Paragraph>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile' as never)}>
+          <TouchableOpacity>
             <Avatar.Image
               size={80}
               source={
@@ -139,7 +125,6 @@ const HomeScreen = () => {
             <TouchableOpacity
               key={index}
               style={styles.menuItem}
-              onPress={item.onPress}
               activeOpacity={0.7}
             >
               <Card style={styles.menuCard}>
@@ -209,11 +194,6 @@ const styles = StyleSheet.create({
   },
   roleChip: {
     marginTop: 4,
-  },
-  roleChipText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   subtitle: {
     color: colors.white,
