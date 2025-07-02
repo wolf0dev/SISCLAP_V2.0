@@ -1,9 +1,8 @@
-import React, { createContext, useContext } from 'react';
-import { toast, ToastContent, ToastOptions } from 'react-toastify';
-import { AlertColor } from '@mui/material';
+import React, { createContext, useContext, ReactNode } from 'react';
+import Toast from 'react-native-toast-message';
 
 interface SnackbarContextType {
-  showSnackbar: (message: ToastContent, severity: AlertColor) => void;
+  showSnackbar: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 const SnackbarContext = createContext<SnackbarContextType>({
@@ -12,35 +11,20 @@ const SnackbarContext = createContext<SnackbarContextType>({
 
 export const useSnackbar = () => useContext(SnackbarContext);
 
-export const SnackbarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const showSnackbar = (message: ToastContent, severity: AlertColor) => {
-    const options: ToastOptions = {
-      position: "top-center",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "colored",
-    };
+interface SnackbarProviderProps {
+  children: ReactNode;
+}
 
-    switch (severity) {
-      case 'success':
-        toast.success(message, options);
-        break;
-      case 'error':
-        toast.error(message, options);
-        break;
-      case 'warning':
-        toast.warning(message, options);
-        break;
-      case 'info':
-        toast.info(message, options);
-        break;
-      default:
-        toast(message, options);
-    }
+export const SnackbarProvider: React.FC<SnackbarProviderProps> = ({ children }) => {
+  const showSnackbar = (message: string, type: 'success' | 'error' | 'info' | 'warning') => {
+    Toast.show({
+      type: type,
+      text1: message,
+      position: 'top',
+      visibilityTime: 3000,
+      autoHide: true,
+      topOffset: 60,
+    });
   };
 
   return (

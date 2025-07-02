@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 import { useSnackbar } from './SnackbarContext';
 import { userService, User } from '../services/userService';
@@ -64,22 +64,23 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [userCalleNombre, setUserCalleNombre] = useState<string | null>(null);
   const { showSnackbar } = useSnackbar();
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const refreshUserData = async () => {
-    const userId = localStorage.getItem('userId');
+    const userId = await AsyncStorage.getItem('userId');
     if (!userId) return;
 
     try {
       const userData = await userService.getById(parseInt(userId));
       
-      // Procesar foto de perfil
       if (userData.foto_perfil) {
         try {
           if (typeof userData.foto_perfil === 'string') {
@@ -93,7 +94,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setUser(userData);
 
-      // Obtener nombre de calle si es jefe de calle
       if (userData.id_rol_user === 2 && userData.id_calle) {
         try {
           const calles = await calleService.getAll();
@@ -111,8 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem('token');
-      const userId = localStorage.getItem('userId');
+      const token = await AsyncStorage.getItem('token');
+      const userId = await AsyncStorage.getItem('userId');
 
       if (!token || !userId) {
         setLoading(false);
@@ -124,34 +124,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const currentTime = Date.now() / 1000;
 
         if (decodedToken.exp && decodedToken.exp < currentTime) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userId');
+          await AsyncStorage.multiRemove(['token', 'userId']);
           setUser(null);
-          if (location.pathname !== '/login') {
-            navigate('/login');
-          }
         } else {
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           await refreshUserData();
-
-          if (location.pathname === '/login') {
-            navigate('/dashboard');
-          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
-        if (location.pathname !== '/login') {
-          navigate('/login');
-        }
+        await AsyncStorage.multiRemove(['token', 'userId']);
       } finally {
         setLoading(false);
       }
     };
 
     initializeAuth();
-  }, [navigate, location.pathname]);
+  }, []);
 
   const login = async (username: string, password: string) => {
     try {
@@ -162,12 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { token, id, ...userData } = response.data;
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('userId', id.toString());
+      await AsyncStorage.setItem('token', token);
+      await AsyncStorage.setItem('userId', id.toString());
 
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // Procesar foto de perfil
       if (userData.foto_perfil) {
         try {
           if (typeof userData.foto_perfil === 'string') {
@@ -182,7 +169,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const fullUserData = { id, ...userData };
       setUser(fullUserData);
 
-      // Obtener nombre de calle si es jefe de calle
       if (userData.id_rol_user === 2 && userData.id_calle) {
         try {
           const calles = await calleService.getAll();
@@ -193,8 +179,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      navigate('/dashboard', { replace: true });
-
     } catch (error: any) {
       console.error('Error de inicio de sesión:', error);
       const errorMessage = error.response?.data?.error || 'Error al iniciar sesión';
@@ -203,20 +187,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
+  const logout = async () => {
+    await AsyncStorage.multiRemove(['token', 'userId']);
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setUserCalleNombre(null);
-    navigate('/login', { replace: true });
   };
 
   const updateProfile = async (data: UpdateProfileData) => {
     try {
       if (!user) throw new Error('No hay usuario autenticado');
 
-      // Preparar la foto de perfil para envío
       let foto_perfil = null;
       if (data.foto_perfil && data.foto_perfil.startsWith('data:image/')) {
         foto_perfil = data.foto_perfil.split(',')[1];
@@ -233,7 +214,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         foto_perfil: foto_perfil,
       });
 
-      // Refrescar datos del usuario
       await refreshUserData();
       showSnackbar('Perfil actualizado exitosamente', 'success');
 
@@ -291,7 +271,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Funciones para manejo de roles
   const isLiderComunidad = () => {
     return user?.id_rol_user === 1;
   };
