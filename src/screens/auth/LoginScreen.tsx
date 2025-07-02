@@ -12,6 +12,7 @@ import {
   Title,
   Paragraph,
   Button,
+  TextInput,
 } from 'react-native-paper';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
