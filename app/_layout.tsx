@@ -6,9 +6,11 @@ import Toast from 'react-native-toast-message';
 import { AuthProvider } from '../src/contexts/AuthContext';
 import { SnackbarProvider } from '../src/contexts/SnackbarContext';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
-import { theme } from '../src/theme/theme';
+import { theme } from '../src/theme/theme'
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 export default function RootLayout() {
+  useFrameworkReady();
   return (
     <SafeAreaProvider>
       <ThemeProvider>
