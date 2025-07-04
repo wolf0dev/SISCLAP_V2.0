@@ -16,9 +16,12 @@ export function useBeneficiarios() {
         setBeneficiarios(response.data);
       } else {
         setError(response.error || 'Error al cargar beneficiarios');
+        // Set empty array if there's an error to avoid showing stale data
+        setBeneficiarios([]);
       }
     } catch (err) {
-      setError('Error de conexión');
+      setError('Error de conexión con el servidor SISCLAP');
+      setBeneficiarios([]);
     } finally {
       setLoading(false);
     }
@@ -33,9 +36,11 @@ export function useBeneficiarios() {
         setBeneficiarios(response.data);
       } else {
         setError(response.error || 'Error en la búsqueda');
+        setBeneficiarios([]);
       }
     } catch (err) {
       setError('Error de conexión');
+      setBeneficiarios([]);
     } finally {
       setLoading(false);
     }

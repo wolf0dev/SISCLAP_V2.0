@@ -10,7 +10,8 @@ import {
   DependienteForm
 } from '../types';
 
-const API_BASE_URL = 'https://localhost:3000/api';
+// Use the correct API base URL from the documentation
+const API_BASE_URL = 'http://localhost:3000/api';
 
 // Función helper para manejar respuestas de la API
 const handleApiResponse = async <T>(response: Response): Promise<ApiResponse<T>> => {
@@ -24,8 +25,11 @@ const handleApiResponse = async <T>(response: Response): Promise<ApiResponse<T>>
     if (hasJsonContent) {
       const text = await response.text();
       if (text.trim() === '') {
-        // Empty response
-        data = null;
+        // Empty response - this is OK for some operations
+        return {
+          success: true,
+          message: 'Operación completada exitosamente'
+        };
       } else {
         try {
           data = JSON.parse(text);
@@ -39,13 +43,31 @@ const handleApiResponse = async <T>(response: Response): Promise<ApiResponse<T>>
       }
     } else {
       // Non-JSON response
-      data = await response.text();
+      const text = await response.text();
+      if (text.trim() === '') {
+        return {
+          success: true,
+          message: 'Operación completada exitosamente'
+        };
+      }
+      
+      // Try to parse as JSON anyway (some servers don't set correct content-type)
+      try {
+        data = JSON.parse(text);
+      } catch {
+        // If it's not JSON, treat as error message
+        return {
+          success: false,
+          error: text || 'Error desconocido del servidor'
+        };
+      }
     }
     
     if (!response.ok) {
       return {
         success: false,
         error: (data && typeof data === 'object' && data.error) || 
+               (data && typeof data === 'string' ? data : null) ||
                `Error ${response.status}: ${response.statusText}`
       };
     }
@@ -90,6 +112,7 @@ const makeRequest = async <T>(
   
   const defaultHeaders = {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   };
 
   // TODO: Agregar token de autenticación cuando esté implementado
@@ -114,9 +137,17 @@ const makeRequest = async <T>(
     return result;
   } catch (error) {
     console.error(`Request failed for ${url}:`, error);
+    
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      return {
+        success: false,
+        error: 'Error de conexión. Verifique que el servidor SISCLAP esté funcionando en http://localhost:3000'
+      };
+    }
+    
     return {
       success: false,
-      error: 'Error de conexión. Verifique que el servidor esté funcionando.'
+      error: error instanceof Error ? error.message : 'Error desconocido'
     };
   }
 };

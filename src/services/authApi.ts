@@ -12,7 +12,8 @@ import {
   ApiResponse
 } from '../types/auth';
 
-const API_BASE_URL = 'https://localhost:3000/api/usuarios';
+// Use the correct API base URL from the documentation
+const API_BASE_URL = 'http://localhost:3000/api/usuarios';
 
 class AuthApiService {
   private async makeRequest<T>(
@@ -23,6 +24,7 @@ class AuthApiService {
     
     const defaultHeaders = {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     };
 
     // Add authorization header if token exists
@@ -63,7 +65,13 @@ class AuthApiService {
         }
       } else {
         const text = await response.text();
-        throw new Error(`Respuesta no válida: ${text}`);
+        
+        // Try to parse as JSON anyway (some servers don't set correct content-type)
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Respuesta no válida: ${text}`);
+        }
       }
 
       if (!response.ok) {
@@ -76,7 +84,7 @@ class AuthApiService {
       console.error('Auth API Request failed:', error);
       
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Error de conexión. Verifique que el servidor esté funcionando.');
+        throw new Error('Error de conexión. Verifique que el servidor SISCLAP esté funcionando en http://localhost:3000');
       }
       
       throw error;
