@@ -1,48 +1,117 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
+import BeneficiarioCard from '../../src/components/cards/BeneficiarioCard';
+import BeneficiarioModal from '../../src/components/modals/BeneficiarioModal';
+import LoadingScreen from '../../src/components/common/LoadingScreen';
+import { Beneficiario } from '../../src/types';
 
 export default function BeneficiariosScreen() {
+  const {
+    beneficiarios,
+    loading,
+    error,
+    loadBeneficiarios,
+    searchBeneficiarios,
+    createBeneficiario,
+    updateBeneficiario,
+    deleteBeneficiario
+  } = useBeneficiarios();
+
   const [searchQuery, setSearchQuery] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedBeneficiario, setSelectedBeneficiario] = useState<Beneficiario | undefined>();
+  const [modalLoading, setModalLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const beneficiarios = [
-    {
-      id: '1',
-      nombre: 'María González',
-      cedula: '12345678',
-      telefono: '0414-1234567',
-      calle: 'Calle 1',
-      status: 'Activo',
-    },
-    {
-      id: '2',
-      nombre: 'José Rodríguez',
-      cedula: '87654321',
-      telefono: '0424-7654321',
-      calle: 'Calle 2',
-      status: 'Activo',
-    },
-    {
-      id: '3',
-      nombre: 'Ana Martínez',
-      cedula: '11223344',
-      telefono: '0412-1122334',
-      calle: 'Calle 3',
-      status: 'Inactivo',
-    },
-  ];
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      await searchBeneficiarios(query);
+    } else {
+      await loadBeneficiarios();
+    }
+  };
 
-  const filteredBeneficiarios = beneficiarios.filter(beneficiario =>
-    beneficiario.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    beneficiario.cedula.includes(searchQuery)
-  );
+  const handleCreateBeneficiario = () => {
+    setSelectedBeneficiario(undefined);
+    setModalVisible(true);
+  };
+
+  const handleEditBeneficiario = (beneficiario: Beneficiario) => {
+    setSelectedBeneficiario(beneficiario);
+    setModalVisible(true);
+  };
+
+  const handleViewBeneficiario = (beneficiario: Beneficiario) => {
+    Alert.alert(
+      `${beneficiario.nombre} ${beneficiario.apellido}`,
+      `Cédula: ${beneficiario.cedula}\nTeléfono: ${beneficiario.telefono}\nEmail: ${beneficiario.email || 'No especificado'}\nDirección: ${beneficiario.direccion.calle}, Casa ${beneficiario.direccion.casa}\nSector: ${beneficiario.direccion.sector}\nEstado: ${beneficiario.status}\nDependientes: ${beneficiario.dependientes.length}\nFecha de registro: ${beneficiario.fechaRegistro}`,
+      [{ text: 'Cerrar' }]
+    );
+  };
+
+  const handleDeleteBeneficiario = (beneficiario: Beneficiario) => {
+    Alert.alert(
+      'Confirmar eliminación',
+      `¿Estás seguro de que deseas eliminar a ${beneficiario.nombre} ${beneficiario.apellido}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteBeneficiario(beneficiario.id);
+              Alert.alert('Éxito', 'Beneficiario eliminado correctamente');
+            } catch (error) {
+              Alert.alert('Error', error instanceof Error ? error.message : 'Error al eliminar');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleSubmitForm = async (data: Omit<Beneficiario, 'id' | 'fechaRegistro'>) => {
+    try {
+      setModalLoading(true);
+      
+      if (selectedBeneficiario) {
+        await updateBeneficiario(selectedBeneficiario.id, data);
+        Alert.alert('Éxito', 'Beneficiario actualizado correctamente');
+      } else {
+        await createBeneficiario(data);
+        Alert.alert('Éxito', 'Beneficiario creado correctamente');
+      }
+      
+      setModalVisible(false);
+      setSelectedBeneficiario(undefined);
+    } catch (error) {
+      throw error;
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadBeneficiarios();
+    setSearchQuery('');
+    setRefreshing(false);
+  };
+
+  if (loading && !refreshing) {
+    return <LoadingScreen />;
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Beneficiarios</Text>
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity style={styles.addButton} onPress={handleCreateBeneficiario}>
           <Ionicons name="add" size={24} color="white" />
         </TouchableOpacity>
       </View>
@@ -51,51 +120,70 @@ export default function BeneficiariosScreen() {
         <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Buscar por nombre o cédula..."
+          placeholder="Buscar por nombre, apellido o cédula..."
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={handleSearch}
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => handleSearch('')}
+          >
+            <Ionicons name="close-circle" size={20} color="#666" />
+          </TouchableOpacity>
+        )}
       </View>
 
-      <ScrollView style={styles.listContainer}>
-        {filteredBeneficiarios.map((beneficiario) => (
-          <TouchableOpacity key={beneficiario.id} style={styles.beneficiarioCard}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.beneficiarioName}>{beneficiario.nombre}</Text>
-              <View style={[
-                styles.statusBadge,
-                { backgroundColor: beneficiario.status === 'Activo' ? '#4CAF50' : '#F44336' }
-              ]}>
-                <Text style={styles.statusText}>{beneficiario.status}</Text>
-              </View>
-            </View>
-            <View style={styles.cardContent}>
-              <View style={styles.infoRow}>
-                <Ionicons name="card" size={16} color="#666" />
-                <Text style={styles.infoText}>Cédula: {beneficiario.cedula}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons name="call" size={16} color="#666" />
-                <Text style={styles.infoText}>Teléfono: {beneficiario.telefono}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons name="location" size={16} color="#666" />
-                <Text style={styles.infoText}>Calle: {beneficiario.calle}</Text>
-              </View>
-            </View>
-            <View style={styles.cardActions}>
-              <TouchableOpacity style={styles.actionButton}>
-                <Ionicons name="eye" size={18} color="#2196F3" />
-                <Text style={[styles.actionText, { color: '#2196F3' }]}>Ver</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
-                <Ionicons name="create" size={18} color="#FF9800" />
-                <Text style={[styles.actionText, { color: '#FF9800' }]}>Editar</Text>
-              </TouchableOpacity>
-            </View>
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadBeneficiarios}>
+            <Text style={styles.retryText}>Reintentar</Text>
           </TouchableOpacity>
-        ))}
+        </View>
+      )}
+
+      <ScrollView 
+        style={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
+        {beneficiarios.length === 0 && !loading ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="people-outline" size={64} color="#ccc" />
+            <Text style={styles.emptyText}>
+              {searchQuery ? 'No se encontraron beneficiarios' : 'No hay beneficiarios registrados'}
+            </Text>
+            {!searchQuery && (
+              <TouchableOpacity style={styles.emptyButton} onPress={handleCreateBeneficiario}>
+                <Text style={styles.emptyButtonText}>Agregar primer beneficiario</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          beneficiarios.map((beneficiario) => (
+            <BeneficiarioCard
+              key={beneficiario.id}
+              beneficiario={beneficiario}
+              onView={() => handleViewBeneficiario(beneficiario)}
+              onEdit={() => handleEditBeneficiario(beneficiario)}
+              onDelete={() => handleDeleteBeneficiario(beneficiario)}
+            />
+          ))
+        )}
       </ScrollView>
+
+      <BeneficiarioModal
+        visible={modalVisible}
+        beneficiario={selectedBeneficiario}
+        onClose={() => {
+          setModalVisible(false);
+          setSelectedBeneficiario(undefined);
+        }}
+        onSubmit={handleSubmitForm}
+        loading={modalLoading}
+      />
     </SafeAreaView>
   );
 }
@@ -145,74 +233,56 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
   },
+  clearButton: {
+    padding: 4,
+  },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    margin: 20,
+    padding: 16,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f44336',
+  },
+  errorText: {
+    color: '#c62828',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+  },
+  retryText: {
+    color: '#1976d2',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   listContainer: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  beneficiarioCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  beneficiarioName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+  emptyContainer: {
     flex: 1,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  cardContent: {
-    marginBottom: 12,
-  },
-  infoRow: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
+    paddingVertical: 60,
   },
-  infoText: {
-    marginLeft: 8,
-    fontSize: 14,
+  emptyText: {
+    fontSize: 16,
     color: '#666',
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 24,
   },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 12,
+  emptyButton: {
+    backgroundColor: '#FF4040',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
   },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 16,
-  },
-  actionText: {
-    marginLeft: 4,
-    fontSize: 14,
+  emptyButtonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: '500',
   },
 });

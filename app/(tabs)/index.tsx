@@ -1,11 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { beneficiarios, loading, loadBeneficiarios } = useBeneficiarios();
+  const [refreshing, setRefreshing] = React.useState(false);
 
   const menuItems = [
     {
@@ -31,9 +34,26 @@ export default function HomeScreen() {
     },
   ];
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadBeneficiarios();
+    setRefreshing(false);
+  };
+
+  // Calculate real-time stats
+  const totalBeneficiarios = beneficiarios.length;
+  const totalDependientes = beneficiarios.reduce((acc, b) => acc + b.dependientes.length, 0);
+  const beneficiariosActivos = beneficiarios.filter(b => b.status === 'Activo').length;
+  const totalBeneficios = beneficiarios.reduce((acc, b) => acc + b.beneficiosRecibidos.length, 0);
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Image 
@@ -48,8 +68,31 @@ export default function HomeScreen() {
         <View style={styles.welcomeCard}>
           <Text style={styles.welcomeTitle}>¡Bienvenido!</Text>
           <Text style={styles.welcomeText}>
-            Gestiona de manera eficiente los beneficiarios y reportes de la comunidad
+            Gestiona de manera eficiente los beneficiarios y reportes de la comunidad Brisas del Orinoco II
           </Text>
+        </View>
+
+        {/* Stats Card */}
+        <View style={styles.statsCard}>
+          <Text style={styles.statsTitle}>Estadísticas en Tiempo Real</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{totalBeneficiarios}</Text>
+              <Text style={styles.statLabel}>Beneficiarios</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{totalDependientes}</Text>
+              <Text style={styles.statLabel}>Dependientes</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{beneficiariosActivos}</Text>
+              <Text style={styles.statLabel}>Activos</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{totalBeneficios}</Text>
+              <Text style={styles.statLabel}>Beneficios</Text>
+            </View>
+          </View>
         </View>
 
         {/* Menu Items */}
@@ -72,21 +115,57 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* Stats Card */}
-        <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>Estadísticas Rápidas</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>150</Text>
-              <Text style={styles.statLabel}>Beneficiarios</Text>
+        {/* Quick Actions */}
+        <View style={styles.quickActionsCard}>
+          <Text style={styles.quickActionsTitle}>Acciones Rápidas</Text>
+          <View style={styles.quickActionsRow}>
+            <TouchableOpacity 
+              style={styles.quickAction}
+              onPress={() => router.push('/beneficiarios')}
+            >
+              <Ionicons name="person-add" size={24} color="#FF4040" />
+              <Text style={styles.quickActionText}>Nuevo Beneficiario</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.quickAction}
+              onPress={() => router.push('/reportes')}
+            >
+              <Ionicons name="document-text" size={24} color="#4CAF50" />
+              <Text style={styles.quickActionText}>Generar Reporte</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Recent Activity */}
+        <View style={styles.activityCard}>
+          <Text style={styles.activityTitle}>Actividad Reciente</Text>
+          <View style={styles.activityList}>
+            <View style={styles.activityItem}>
+              <View style={styles.activityIcon}>
+                <Ionicons name="person-add" size={16} color="#4CAF50" />
+              </View>
+              <View style={styles.activityContent}>
+                <Text style={styles.activityText}>Nuevo beneficiario registrado</Text>
+                <Text style={styles.activityTime}>Hace 2 horas</Text>
+              </View>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>45</Text>
-              <Text style={styles.statLabel}>Dependientes</Text>
+            <View style={styles.activityItem}>
+              <View style={styles.activityIcon}>
+                <Ionicons name="document" size={16} color="#2196F3" />
+              </View>
+              <View style={styles.activityContent}>
+                <Text style={styles.activityText}>Reporte de carga familiar generado</Text>
+                <Text style={styles.activityTime}>Ayer</Text>
+              </View>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>12</Text>
-              <Text style={styles.statLabel}>Reportes</Text>
+            <View style={styles.activityItem}>
+              <View style={styles.activityIcon}>
+                <Ionicons name="create" size={16} color="#FF9800" />
+              </View>
+              <View style={styles.activityContent}>
+                <Text style={styles.activityText}>Información de beneficiario actualizada</Text>
+                <Text style={styles.activityTime}>Hace 3 días</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -142,6 +221,44 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 20,
   },
+  statsCard: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FF4040',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
   menuContainer: {
     marginBottom: 25,
   },
@@ -183,7 +300,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  statsCard: {
+  quickActionsCard: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  quickActionsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  quickAction: {
+    alignItems: 'center',
+    padding: 16,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: '#333',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  activityCard: {
     backgroundColor: 'white',
     padding: 20,
     borderRadius: 12,
@@ -196,27 +347,37 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  statsTitle: {
+  activityTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 15,
-    textAlign: 'center',
   },
-  statsRow: {
+  activityList: {
+    gap: 12,
+  },
+  activityItem: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
     alignItems: 'center',
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF4040',
-    marginBottom: 4,
+  activityIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  statLabel: {
+  activityContent: {
+    flex: 1,
+  },
+  activityText: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 2,
+  },
+  activityTime: {
     fontSize: 12,
     color: '#666',
   },

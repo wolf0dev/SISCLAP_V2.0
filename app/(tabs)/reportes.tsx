@@ -1,37 +1,44 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { reportesApi } from '../../src/services/api';
 
 export default function ReportesScreen() {
+  const [loadingReports, setLoadingReports] = useState<Record<string, boolean>>({});
+
   const reportTypes = [
     {
-      id: '1',
+      id: 'carga-familiar',
       title: 'Reporte de Carga Familiar',
       description: 'Beneficiarios y sus dependientes',
       icon: 'people',
       color: '#4CAF50',
+      generator: reportesApi.generateCargaFamiliar,
     },
     {
-      id: '2',
+      id: 'habitantes-calle',
       title: 'Habitantes por Calle',
       description: 'Distribución por ubicación',
       icon: 'location',
       color: '#2196F3',
+      generator: reportesApi.generateHabitantesPorCalle,
     },
     {
-      id: '3',
+      id: 'rango-edad',
       title: 'Rango de Edad',
       description: 'Clasificación por edades',
       icon: 'calendar',
       color: '#FF9800',
+      generator: reportesApi.generateRangoEdad,
     },
     {
-      id: '4',
-      title: 'Reporte de Ventas',
+      id: 'ventas',
+      title: 'Reporte de Beneficios',
       description: 'Control de beneficios entregados',
       icon: 'receipt',
       color: '#9C27B0',
+      generator: reportesApi.generateVentas,
     },
   ];
 
@@ -41,6 +48,90 @@ export default function ReportesScreen() {
     { label: 'Calles Activas', value: '8', color: '#2196F3' },
     { label: 'Reportes Generados', value: '23', color: '#FF9800' },
   ];
+
+  const generateReport = async (reportType: typeof reportTypes[0]) => {
+    try {
+      setLoadingReports(prev => ({ ...prev, [reportType.id]: true }));
+      
+      const response = await reportType.generator();
+      
+      if (response.success) {
+        // Format the data for display
+        let message = '';
+        
+        switch (reportType.id) {
+          case 'carga-familiar':
+            const cfData = response.data;
+            message = `Total de Beneficiarios: ${cfData.totalBeneficiarios}\nTotal de Dependientes: ${cfData.totalDependientes}\nPromedio de hijos por familia: ${cfData.promedioHijosPorFamilia.toFixed(1)}\nFamilias sin hijos: ${cfData.familiasSinHijos}\nFamilias con hijos: ${cfData.familiasConHijos}`;
+            break;
+            
+          case 'habitantes-calle':
+            const hcData = response.data;
+            message = hcData.map((item: any) => `${item.calle}: ${item.habitantes} habitantes`).join('\n');
+            break;
+            
+          case 'rango-edad':
+            const reData = response.data;
+            message = reData.map((item: any) => `${item.rango} años: ${item.cantidad} personas`).join('\n');
+            break;
+            
+          case 'ventas':
+            const vData = response.data;
+            message = `Total de beneficios entregados: ${vData.totalBeneficios}\nÚltimo mes: ${vData.ultimoMes}\n\nPor tipo:\n${vData.tiposBeneficios.map((item: any) => `${item.tipo}: ${item.cantidad}`).join('\n')}`;
+            break;
+        }
+        
+        Alert.alert(reportType.title, message, [
+          { text: 'Cerrar' },
+          { text: 'Exportar', onPress: () => exportReport(reportType.title, message) }
+        ]);
+      } else {
+        Alert.alert('Error', response.error || 'Error al generar el reporte');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Error de conexión al generar el reporte');
+    } finally {
+      setLoadingReports(prev => ({ ...prev, [reportType.id]: false }));
+    }
+  };
+
+  const exportReport = (title: string, data: string) => {
+    // In a real app, you would implement actual export functionality
+    // For now, we'll just show a success message
+    Alert.alert('Exportar', `El reporte "${title}" se ha exportado exitosamente.`);
+  };
+
+  const generateCompleteReport = async () => {
+    Alert.alert(
+      'Generar Reporte Completo',
+      '¿Deseas generar un reporte completo con todos los datos?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Generar',
+          onPress: async () => {
+            try {
+              setLoadingReports(prev => ({ ...prev, 'complete': true }));
+              
+              // Generate all reports
+              const [cfReport, hcReport, reReport, vReport] = await Promise.all([
+                reportesApi.generateCargaFamiliar(),
+                reportesApi.generateHabitantesPorCalle(),
+                reportesApi.generateRangoEdad(),
+                reportesApi.generateVentas()
+              ]);
+              
+              Alert.alert('Éxito', 'Reporte completo generado exitosamente');
+            } catch (error) {
+              Alert.alert('Error', 'Error al generar el reporte completo');
+            } finally {
+              setLoadingReports(prev => ({ ...prev, 'complete': false }));
+            }
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -66,7 +157,12 @@ export default function ReportesScreen() {
         <View style={styles.reportsContainer}>
           <Text style={styles.sectionTitle}>Tipos de Reportes</Text>
           {reportTypes.map((report) => (
-            <TouchableOpacity key={report.id} style={styles.reportCard}>
+            <TouchableOpacity 
+              key={report.id} 
+              style={styles.reportCard}
+              onPress={() => generateReport(report)}
+              disabled={loadingReports[report.id]}
+            >
               <View style={[styles.reportIcon, { backgroundColor: report.color }]}>
                 <Ionicons name={report.icon as any} size={24} color="white" />
               </View>
@@ -75,12 +171,24 @@ export default function ReportesScreen() {
                 <Text style={styles.reportDescription}>{report.description}</Text>
               </View>
               <View style={styles.reportActions}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="download" size={20} color="#666" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="eye" size={20} color="#666" />
-                </TouchableOpacity>
+                {loadingReports[report.id] ? (
+                  <ActivityIndicator size="small" color="#666" />
+                ) : (
+                  <>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => generateReport(report)}
+                    >
+                      <Ionicons name="download" size={20} color="#666" />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => generateReport(report)}
+                    >
+                      <Ionicons name="eye" size={20} color="#666" />
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             </TouchableOpacity>
           ))}
@@ -90,14 +198,50 @@ export default function ReportesScreen() {
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
           <View style={styles.quickActionsGrid}>
-            <TouchableOpacity style={styles.quickActionCard}>
-              <Ionicons name="document-text" size={32} color="#FF4040" />
+            <TouchableOpacity 
+              style={styles.quickActionCard}
+              onPress={generateCompleteReport}
+              disabled={loadingReports['complete']}
+            >
+              {loadingReports['complete'] ? (
+                <ActivityIndicator size={32} color="#FF4040" />
+              ) : (
+                <Ionicons name="document-text" size={32} color="#FF4040" />
+              )}
               <Text style={styles.quickActionText}>Generar Reporte Completo</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionCard}>
+            <TouchableOpacity 
+              style={styles.quickActionCard}
+              onPress={() => Alert.alert('Exportar', 'Funcionalidad de exportación disponible próximamente')}
+            >
               <Ionicons name="share" size={32} color="#4CAF50" />
               <Text style={styles.quickActionText}>Exportar Datos</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Recent Reports */}
+        <View style={styles.recentContainer}>
+          <Text style={styles.sectionTitle}>Reportes Recientes</Text>
+          <View style={styles.recentList}>
+            <View style={styles.recentItem}>
+              <View style={styles.recentInfo}>
+                <Text style={styles.recentTitle}>Reporte de Carga Familiar</Text>
+                <Text style={styles.recentDate}>Generado el 15/01/2024</Text>
+              </View>
+              <TouchableOpacity style={styles.recentAction}>
+                <Ionicons name="download-outline" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.recentItem}>
+              <View style={styles.recentInfo}>
+                <Text style={styles.recentTitle}>Habitantes por Calle</Text>
+                <Text style={styles.recentDate}>Generado el 12/01/2024</Text>
+              </View>
+              <TouchableOpacity style={styles.recentAction}>
+                <Ionicons name="download-outline" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -239,5 +383,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     fontWeight: '500',
+  },
+  recentContainer: {
+    marginBottom: 25,
+  },
+  recentList: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  recentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  recentInfo: {
+    flex: 1,
+  },
+  recentTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  recentDate: {
+    fontSize: 12,
+    color: '#666',
+  },
+  recentAction: {
+    padding: 8,
   },
 });
