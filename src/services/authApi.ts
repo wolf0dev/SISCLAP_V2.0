@@ -12,7 +12,7 @@ import {
   ApiResponse
 } from '../types/auth';
 
-const API_BASE_URL = 'http://localhost:3000/api/usuarios';
+const API_BASE_URL = 'https://localhost:3000/api/usuarios';
 
 class AuthApiService {
   private async makeRequest<T>(
