@@ -26,9 +26,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="beneficiarios"
         options={{
-          title: 'Beneficiarios',
+          title: 'Activos',
           tabBarIcon: ({ size, color }) => (
             <Ionicons name="people" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="beneficiarios-inactivos"
+        options={{
+          title: 'Inactivos',
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
           ),
         }}
       />

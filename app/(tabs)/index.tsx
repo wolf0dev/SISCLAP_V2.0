@@ -12,18 +12,25 @@ export default function HomeScreen() {
 
   const menuItems = [
     {
-      title: 'Beneficiarios',
-      description: 'Gestionar beneficiarios del sistema',
+      title: 'Beneficiarios Activos',
+      description: 'Gestionar beneficiarios activos',
       icon: 'people',
       route: '/beneficiarios',
-      color: '#FF4040',
+      color: '#4CAF50',
+    },
+    {
+      title: 'Beneficiarios Inactivos',
+      description: 'Ver beneficiarios inactivos',
+      icon: 'people-outline',
+      route: '/beneficiarios-inactivos',
+      color: '#F44336',
     },
     {
       title: 'Reportes',
       description: 'Generar reportes del sistema',
       icon: 'bar-chart',
       route: '/reportes',
-      color: '#4CAF50',
+      color: '#FF9800',
     },
     {
       title: 'Mi Perfil',
@@ -133,14 +140,14 @@ export default function HomeScreen() {
               style={styles.quickAction}
               onPress={() => router.push('/beneficiarios')}
             >
-              <Ionicons name="person-add" size={24} color="#FF4040" />
+              <Ionicons name="person-add" size={24} color="#4CAF50" />
               <Text style={styles.quickActionText}>Nuevo Beneficiario</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.quickAction}
               onPress={() => router.push('/reportes')}
             >
-              <Ionicons name="document-text" size={24} color="#4CAF50" />
+              <Ionicons name="document-text" size={24} color="#FF9800" />
               <Text style={styles.quickActionText}>Generar Reporte</Text>
             </TouchableOpacity>
           </View>

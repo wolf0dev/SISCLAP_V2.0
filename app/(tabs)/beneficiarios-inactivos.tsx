@@ -4,30 +4,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
 import BeneficiarioCard from '../../src/components/cards/BeneficiarioCard';
-import BeneficiarioModal from '../../src/components/modals/BeneficiarioModal';
 import LoadingScreen from '../../src/components/common/LoadingScreen';
-import { Beneficiario, BeneficiarioForm } from '../../src/types';
+import { Beneficiario } from '../../src/types';
 
-export default function BeneficiariosActivosScreen() {
+export default function BeneficiariosInactivosScreen() {
   const {
     beneficiarios,
     loading,
     error,
     loadBeneficiarios,
     searchBeneficiarios,
-    createBeneficiario,
-    updateBeneficiario,
     updateEstatusBeneficiario
   } = useBeneficiarios();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedBeneficiario, setSelectedBeneficiario] = useState<Beneficiario | undefined>();
-  const [modalLoading, setModalLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Filter only active beneficiarios
-  const beneficiariosActivos = beneficiarios.filter(b => b.estatus === 'Activo');
+  // Filter only inactive beneficiarios
+  const beneficiariosInactivos = beneficiarios.filter(b => b.estatus === 'Inactivo');
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -36,16 +30,6 @@ export default function BeneficiariosActivosScreen() {
     } else {
       await loadBeneficiarios();
     }
-  };
-
-  const handleCreateBeneficiario = () => {
-    setSelectedBeneficiario(undefined);
-    setModalVisible(true);
-  };
-
-  const handleEditBeneficiario = (beneficiario: Beneficiario) => {
-    setSelectedBeneficiario(beneficiario);
-    setModalVisible(true);
   };
 
   const handleViewBeneficiario = (beneficiario: Beneficiario) => {
@@ -68,47 +52,25 @@ export default function BeneficiariosActivosScreen() {
     );
   };
 
-  const handleDeactivateBeneficiario = (beneficiario: Beneficiario) => {
+  const handleActivateBeneficiario = (beneficiario: Beneficiario) => {
     Alert.alert(
-      'Desactivar Beneficiario',
-      `¿Estás seguro de que deseas desactivar a ${beneficiario.nombre_apellido}?`,
+      'Activar Beneficiario',
+      `¿Estás seguro de que deseas activar a ${beneficiario.nombre_apellido}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Desactivar',
-          style: 'destructive',
+          text: 'Activar',
           onPress: async () => {
             try {
-              await updateEstatusBeneficiario(beneficiario.cedula, 'Inactivo');
-              Alert.alert('Éxito', 'Beneficiario desactivado correctamente');
+              await updateEstatusBeneficiario(beneficiario.cedula, 'Activo');
+              Alert.alert('Éxito', 'Beneficiario activado correctamente');
             } catch (error) {
-              Alert.alert('Error', error instanceof Error ? error.message : 'Error al desactivar beneficiario');
+              Alert.alert('Error', error instanceof Error ? error.message : 'Error al activar beneficiario');
             }
           }
         }
       ]
     );
-  };
-
-  const handleSubmitForm = async (data: BeneficiarioForm) => {
-    try {
-      setModalLoading(true);
-      
-      if (selectedBeneficiario) {
-        await updateBeneficiario(selectedBeneficiario.cedula, data);
-        Alert.alert('Éxito', 'Beneficiario actualizado correctamente');
-      } else {
-        await createBeneficiario(data);
-        Alert.alert('Éxito', 'Beneficiario creado correctamente');
-      }
-      
-      setModalVisible(false);
-      setSelectedBeneficiario(undefined);
-    } catch (error) {
-      throw error;
-    } finally {
-      setModalLoading(false);
-    }
   };
 
   const handleRefresh = async () => {
@@ -125,10 +87,7 @@ export default function BeneficiariosActivosScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Beneficiarios Activos</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleCreateBeneficiario}>
-          <Ionicons name="add" size={24} color="white" />
-        </TouchableOpacity>
+        <Text style={styles.title}>Beneficiarios Inactivos</Text>
       </View>
 
       <View style={styles.searchContainer}>
@@ -152,8 +111,8 @@ export default function BeneficiariosActivosScreen() {
       {/* Stats Card */}
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{beneficiariosActivos.length}</Text>
-          <Text style={styles.statLabel}>Beneficiarios Activos</Text>
+          <Text style={styles.statNumber}>{beneficiariosInactivos.length}</Text>
+          <Text style={styles.statLabel}>Beneficiarios Inactivos</Text>
         </View>
       </View>
 
@@ -172,41 +131,33 @@ export default function BeneficiariosActivosScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {beneficiariosActivos.length === 0 && !loading ? (
+        {beneficiariosInactivos.length === 0 && !loading ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="people-outline" size={64} color="#ccc" />
             <Text style={styles.emptyText}>
-              {searchQuery ? 'No se encontraron beneficiarios activos' : 'No hay beneficiarios activos registrados'}
+              {searchQuery ? 'No se encontraron beneficiarios inactivos' : 'No hay beneficiarios inactivos'}
             </Text>
-            {!searchQuery && (
-              <TouchableOpacity style={styles.emptyButton} onPress={handleCreateBeneficiario}>
-                <Text style={styles.emptyButtonText}>Agregar primer beneficiario</Text>
-              </TouchableOpacity>
-            )}
+            <Text style={styles.emptySubtext}>
+              Los beneficiarios desactivados aparecerán aquí
+            </Text>
           </View>
         ) : (
-          beneficiariosActivos.map((beneficiario) => (
+          beneficiariosInactivos.map((beneficiario) => (
             <BeneficiarioCard
               key={beneficiario.cedula}
               beneficiario={beneficiario}
               onView={() => handleViewBeneficiario(beneficiario)}
-              onEdit={() => handleEditBeneficiario(beneficiario)}
-              onToggleStatus={() => handleDeactivateBeneficiario(beneficiario)}
+              onEdit={() => {
+                Alert.alert(
+                  'No disponible',
+                  'No se puede editar un beneficiario inactivo. Actívalo primero para poder editarlo.'
+                );
+              }}
+              onToggleStatus={() => handleActivateBeneficiario(beneficiario)}
             />
           ))
         )}
       </ScrollView>
-
-      <BeneficiarioModal
-        visible={modalVisible}
-        beneficiario={selectedBeneficiario}
-        onClose={() => {
-          setModalVisible(false);
-          setSelectedBeneficiario(undefined);
-        }}
-        onSubmit={handleSubmitForm}
-        loading={modalLoading}
-      />
     </SafeAreaView>
   );
 }
@@ -229,14 +180,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-  },
-  addButton: {
-    backgroundColor: '#FF4040',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -280,7 +223,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#F44336',
     marginBottom: 4,
   },
   statLabel: {
@@ -323,17 +266,11 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 16,
-    marginBottom: 24,
+    marginBottom: 8,
   },
-  emptyButton: {
-    backgroundColor: '#FF4040',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
   },
 });

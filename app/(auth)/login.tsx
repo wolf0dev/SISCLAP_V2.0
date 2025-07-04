@@ -77,6 +77,7 @@ export default function LoginScreen() {
             />
             <Text style={styles.title}>Bienvenido</Text>
             <Text style={styles.subtitle}>Sistema de Gestión de Beneficios</Text>
+            <Text style={styles.community}>Brisas del Orinoco II</Text>
           </View>
 
           {/* Login Form */}
@@ -154,14 +155,12 @@ export default function LoginScreen() {
               </Link>
             </View>
 
-            {/* Register Link */}
-            <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>¿No tienes una cuenta? </Text>
-              <Link href="/(auth)/register" asChild>
-                <TouchableOpacity>
-                  <Text style={styles.registerLink}>Regístrate aquí</Text>
-                </TouchableOpacity>
-              </Link>
+            {/* Info Box */}
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle-outline" size={20} color="#2196F3" />
+              <Text style={styles.infoText}>
+                Para obtener acceso al sistema, contacta al administrador de la comunidad.
+              </Text>
             </View>
           </View>
         </ScrollView>
@@ -203,6 +202,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    marginBottom: 4,
+  },
+  community: {
+    fontSize: 14,
+    color: '#FF4040',
+    textAlign: 'center',
+    fontWeight: '500',
   },
   formContainer: {
     backgroundColor: 'white',
@@ -287,22 +293,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  registerContainer: {
+  infoBox: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#e3f2fd',
+    padding: 16,
+    borderRadius: 12,
     marginTop: 24,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    alignItems: 'flex-start',
   },
-  registerText: {
-    color: '#666',
+  infoText: {
+    flex: 1,
+    marginLeft: 12,
     fontSize: 14,
-  },
-  registerLink: {
-    color: '#FF4040',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: '#1976d2',
+    lineHeight: 20,
   },
 });
