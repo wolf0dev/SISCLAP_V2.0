@@ -1,67 +1,127 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../src/contexts/AuthContext';
+import { router } from 'expo-router';
 
 export default function ProfileScreen() {
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que deseas cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          }
+        }
+      ]
+    );
+  };
+
   const menuItems = [
     {
       icon: 'person-circle',
       title: 'Editar Perfil',
       description: 'Actualizar información personal',
       color: '#2196F3',
+      onPress: () => {
+        // TODO: Navigate to edit profile screen
+        Alert.alert('Próximamente', 'Funcionalidad de edición de perfil disponible pronto');
+      }
     },
     {
       icon: 'lock-closed',
       title: 'Cambiar Contraseña',
       description: 'Modificar contraseña de acceso',
       color: '#FF9800',
+      onPress: () => {
+        // TODO: Navigate to change password screen
+        Alert.alert('Próximamente', 'Funcionalidad de cambio de contraseña disponible pronto');
+      }
     },
     {
       icon: 'notifications',
       title: 'Notificaciones',
       description: 'Configurar alertas y avisos',
       color: '#4CAF50',
+      onPress: () => {
+        Alert.alert('Próximamente', 'Configuración de notificaciones disponible pronto');
+      }
     },
     {
       icon: 'help-circle',
       title: 'Ayuda y Soporte',
       description: 'Obtener asistencia técnica',
       color: '#9C27B0',
+      onPress: () => {
+        Alert.alert('Ayuda', 'Para soporte técnico, contacta al administrador del sistema');
+      }
     },
     {
       icon: 'information-circle',
       title: 'Acerca de',
       description: 'Información de la aplicación',
       color: '#607D8B',
+      onPress: () => {
+        Alert.alert(
+          'Sistema de Gestión de Beneficios',
+          'Versión 1.0.0\n\nDesarrollado para la gestión eficiente de beneficiarios y reportes de la comunidad Brisas del Orinoco II.'
+        );
+      }
     },
   ];
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error al cargar el perfil</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <Image 
-            source={{ uri: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop' }}
-            style={styles.profileImage}
-          />
-          <Text style={styles.profileName}>Juan Pérez</Text>
-          <Text style={styles.profileRole}>Líder de Comunidad</Text>
+          {user.foto_perfil ? (
+            <Image 
+              source={{ uri: `data:image/jpeg;base64,${user.foto_perfil}` }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.profileImagePlaceholder}>
+              <Ionicons name="person" size={50} color="#666" />
+            </View>
+          )}
+          <Text style={styles.profileName}>{user.nom_user}</Text>
+          <Text style={styles.profileRole}>
+            {user.id_rol_user === 1 ? 'Líder de Comunidad' : 'Usuario'}
+          </Text>
           <View style={styles.profileStats}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>150</Text>
-              <Text style={styles.statLabel}>Beneficiarios</Text>
+              <Text style={styles.statNumber}>ID</Text>
+              <Text style={styles.statLabel}>{user.id}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>8</Text>
-              <Text style={styles.statLabel}>Calles</Text>
+              <Text style={styles.statNumber}>Calle</Text>
+              <Text style={styles.statLabel}>{user.id_calle}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>23</Text>
-              <Text style={styles.statLabel}>Reportes</Text>
+              <Text style={styles.statNumber}>Rol</Text>
+              <Text style={styles.statLabel}>{user.id_rol_user}</Text>
             </View>
           </View>
         </View>
@@ -70,27 +130,31 @@ export default function ProfileScreen() {
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Información Personal</Text>
           <View style={styles.infoRow}>
-            <Ionicons name="mail" size={20} color="#666" />
-            <Text style={styles.infoText}>juan.perez@email.com</Text>
+            <Ionicons name="person" size={20} color="#666" />
+            <Text style={styles.infoText}>{user.user}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Ionicons name="call" size={20} color="#666" />
-            <Text style={styles.infoText}>+58 414-1234567</Text>
+            <Ionicons name="card" size={20} color="#666" />
+            <Text style={styles.infoText}>{user.ced_user}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="mail" size={20} color="#666" />
+            <Text style={styles.infoText}>{user.correo}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="location" size={20} color="#666" />
-            <Text style={styles.infoText}>Brisas del Orinoco II</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="calendar" size={20} color="#666" />
-            <Text style={styles.infoText}>Miembro desde Enero 2024</Text>
+            <Text style={styles.infoText}>Calle {user.id_calle}, Brisas del Orinoco II</Text>
           </View>
         </View>
 
         {/* Menu Items */}
         <View style={styles.menuContainer}>
           {menuItems.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.menuItem}>
+            <TouchableOpacity 
+              key={index} 
+              style={styles.menuItem}
+              onPress={item.onPress}
+            >
               <View style={[styles.menuIcon, { backgroundColor: item.color }]}>
                 <Ionicons name={item.icon as any} size={24} color="white" />
               </View>
@@ -104,7 +168,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out" size={24} color="#FF4040" />
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
@@ -120,6 +184,15 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
   },
   profileHeader: {
     backgroundColor: 'white',
@@ -142,6 +215,15 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     marginBottom: 16,
   },
+  profileImagePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   profileName: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -162,7 +244,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
   },
