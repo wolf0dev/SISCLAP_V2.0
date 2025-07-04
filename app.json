@@ -15,7 +15,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.brisasorinoco.beneficios"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +24,6 @@
         "backgroundColor": "#FF4040"
       },
       "package": "com.brisasorinoco.beneficios",
-      "versionCode": 1,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -40,6 +40,14 @@
     "experiments": {
       "typedRoutes": true
     },
-    "scheme": "sistema-beneficios"
+    "scheme": "sistema-beneficios",
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    }
   }
 }

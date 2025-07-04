@@ -18,7 +18,7 @@
     "@react-native-picker/picker": "^2.11.1",
     "axios": "^1.6.7",
     "dayjs": "^1.11.10",
-    "expo": "~52.0.30",
+    "expo": "52.0.47",
     "expo-barcode-scanner": "~14.0.0",
     "expo-camera": "~16.0.4",
     "expo-constants": "~17.0.3",
