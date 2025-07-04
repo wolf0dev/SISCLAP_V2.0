@@ -40,16 +40,45 @@ class AuthApiService {
     };
 
     try {
+      console.log(`Making auth request to: ${url}`, config);
       const response = await fetch(url, config);
-      const data = await response.json();
+      
+      // Check if response has content
+      const contentType = response.headers.get('content-type');
+      const hasJsonContent = contentType && contentType.includes('application/json');
+      
+      let data;
+      
+      if (hasJsonContent) {
+        const text = await response.text();
+        if (text.trim() === '') {
+          throw new Error('Respuesta vacía del servidor');
+        }
+        
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          console.error('JSON Parse Error:', parseError, 'Response text:', text);
+          throw new Error('Respuesta inválida del servidor');
+        }
+      } else {
+        const text = await response.text();
+        throw new Error(`Respuesta no válida: ${text}`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
 
+      console.log(`Auth response from ${url}:`, data);
       return data;
     } catch (error) {
-      console.error('API Request failed:', error);
+      console.error('Auth API Request failed:', error);
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Error de conexión. Verifique que el servidor esté funcionando.');
+      }
+      
       throw error;
     }
   }

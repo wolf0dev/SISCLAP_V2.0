@@ -15,16 +15,51 @@ const API_BASE_URL = 'https://localhost:3000/api';
 // Función helper para manejar respuestas de la API
 const handleApiResponse = async <T>(response: Response): Promise<ApiResponse<T>> => {
   try {
-    const data = await response.json();
+    // Check if response has content
+    const contentType = response.headers.get('content-type');
+    const hasJsonContent = contentType && contentType.includes('application/json');
+    
+    let data;
+    
+    if (hasJsonContent) {
+      const text = await response.text();
+      if (text.trim() === '') {
+        // Empty response
+        data = null;
+      } else {
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          console.error('JSON Parse Error:', parseError, 'Response text:', text);
+          return {
+            success: false,
+            error: 'Respuesta inválida del servidor'
+          };
+        }
+      }
+    } else {
+      // Non-JSON response
+      data = await response.text();
+    }
     
     if (!response.ok) {
       return {
         success: false,
-        error: data.error || `Error ${response.status}: ${response.statusText}`
+        error: (data && typeof data === 'object' && data.error) || 
+               `Error ${response.status}: ${response.statusText}`
       };
     }
 
-    // Si la respuesta es un array o un objeto directo, lo envolvemos en data
+    // Handle successful responses
+    if (response.status === 204 || data === null) {
+      // No content responses
+      return {
+        success: true,
+        message: 'Operación completada exitosamente'
+      };
+    }
+
+    // If the response is an array or an object without message/error, wrap it in data
     if (Array.isArray(data) || (typeof data === 'object' && !data.message && !data.error)) {
       return {
         success: true,
@@ -38,6 +73,7 @@ const handleApiResponse = async <T>(response: Response): Promise<ApiResponse<T>>
       message: data.message
     };
   } catch (error) {
+    console.error('API Response Error:', error);
     return {
       success: false,
       error: 'Error de conexión con el servidor'
@@ -71,12 +107,16 @@ const makeRequest = async <T>(
   };
 
   try {
+    console.log(`Making request to: ${url}`, config);
     const response = await fetch(url, config);
-    return await handleApiResponse<T>(response);
+    const result = await handleApiResponse<T>(response);
+    console.log(`Response from ${url}:`, result);
+    return result;
   } catch (error) {
+    console.error(`Request failed for ${url}:`, error);
     return {
       success: false,
-      error: 'Error de conexión'
+      error: 'Error de conexión. Verifique que el servidor esté funcionando.'
     };
   }
 };
