@@ -10,9 +10,7 @@ export default function Index() {
     return <LoadingScreen />;
   }
 
-  if (isAuthenticated) {
-    return <Redirect href="/dashboard" />;
-  }
-
-  return <Redirect href="/auth/login" />;
+  // For now, always redirect to the main tabs since we don't have a login screen yet
+  // In a real app, you would check authentication and redirect accordingly
+  return <Redirect href="/(tabs)" />;
 }
