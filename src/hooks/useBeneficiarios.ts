@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Beneficiario } from '../types';
+import { Beneficiario, BeneficiarioForm } from '../types';
 import { beneficiariosApi } from '../services/api';
 
 export function useBeneficiarios() {
@@ -41,7 +41,7 @@ export function useBeneficiarios() {
     }
   };
 
-  const createBeneficiario = async (beneficiario: Omit<Beneficiario, 'id' | 'fechaRegistro'>) => {
+  const createBeneficiario = async (beneficiario: BeneficiarioForm) => {
     try {
       const response = await beneficiariosApi.create(beneficiario);
       if (response.success) {
@@ -55,9 +55,9 @@ export function useBeneficiarios() {
     }
   };
 
-  const updateBeneficiario = async (id: string, beneficiario: Partial<Beneficiario>) => {
+  const updateBeneficiario = async (cedula: string, beneficiario: Partial<BeneficiarioForm>) => {
     try {
-      const response = await beneficiariosApi.update(id, beneficiario);
+      const response = await beneficiariosApi.update(cedula, beneficiario);
       if (response.success) {
         await loadBeneficiarios();
         return response;
@@ -69,14 +69,27 @@ export function useBeneficiarios() {
     }
   };
 
-  const deleteBeneficiario = async (id: string) => {
+  const updateEstatusBeneficiario = async (cedula: string, estatus: 'Activo' | 'Inactivo') => {
     try {
-      const response = await beneficiariosApi.delete(id);
+      const response = await beneficiariosApi.updateEstatus(cedula, estatus);
       if (response.success) {
         await loadBeneficiarios();
         return response;
       } else {
-        throw new Error(response.error || 'Error al eliminar beneficiario');
+        throw new Error(response.error || 'Error al actualizar estatus');
+      }
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const getBeneficiario = async (cedula: string) => {
+    try {
+      const response = await beneficiariosApi.getByCedula(cedula);
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Beneficiario no encontrado');
       }
     } catch (err) {
       throw err;
@@ -95,6 +108,7 @@ export function useBeneficiarios() {
     searchBeneficiarios,
     createBeneficiario,
     updateBeneficiario,
-    deleteBeneficiario
+    updateEstatusBeneficiario,
+    getBeneficiario
   };
 }

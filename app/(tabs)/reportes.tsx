@@ -33,20 +33,20 @@ export default function ReportesScreen() {
       generator: reportesApi.generateRangoEdad,
     },
     {
-      id: 'ventas',
-      title: 'Reporte de Beneficios',
-      description: 'Control de beneficios entregados',
-      icon: 'receipt',
+      id: 'beneficiarios-dependientes',
+      title: 'Beneficiarios con Dependientes',
+      description: 'Listado completo con dependientes',
+      icon: 'family',
       color: '#9C27B0',
-      generator: reportesApi.generateVentas,
+      generator: reportesApi.getBeneficiariosConDependientes,
     },
   ];
 
   const stats = [
-    { label: 'Total Beneficiarios', value: '150', color: '#FF4040' },
-    { label: 'Dependientes', value: '45', color: '#4CAF50' },
-    { label: 'Calles Activas', value: '8', color: '#2196F3' },
-    { label: 'Reportes Generados', value: '23', color: '#FF9800' },
+    { label: 'Total Beneficiarios', value: '0', color: '#FF4040' },
+    { label: 'Reportes Disponibles', value: '4', color: '#4CAF50' },
+    { label: 'Calles Registradas', value: '0', color: '#2196F3' },
+    { label: 'Datos Actualizados', value: 'Hoy', color: '#FF9800' },
   ];
 
   const generateReport = async (reportType: typeof reportTypes[0]) => {
@@ -62,12 +62,16 @@ export default function ReportesScreen() {
         switch (reportType.id) {
           case 'carga-familiar':
             const cfData = response.data;
-            message = `Total de Beneficiarios: ${cfData.totalBeneficiarios}\nTotal de Dependientes: ${cfData.totalDependientes}\nPromedio de hijos por familia: ${cfData.promedioHijosPorFamilia.toFixed(1)}\nFamilias sin hijos: ${cfData.familiasSinHijos}\nFamilias con hijos: ${cfData.familiasConHijos}`;
+            message = `Total de Beneficiarios: ${cfData.totalBeneficiarios}\nFamilias con dependientes: ${cfData.familiasConHijos}\nFamilias sin dependientes: ${cfData.familiasSinHijos}\nPromedio de dependientes por familia: ${cfData.promedioHijosPorFamilia.toFixed(1)}`;
             break;
             
           case 'habitantes-calle':
             const hcData = response.data;
-            message = hcData.map((item: any) => `${item.calle}: ${item.habitantes} habitantes`).join('\n');
+            if (Array.isArray(hcData)) {
+              message = hcData.map((item: any) => `${item.calle}: ${item.habitantes} habitantes`).join('\n');
+            } else {
+              message = `${hcData.calle}: ${hcData.habitantes} habitantes`;
+            }
             break;
             
           case 'rango-edad':
@@ -75,9 +79,9 @@ export default function ReportesScreen() {
             message = reData.map((item: any) => `${item.rango} años: ${item.cantidad} personas`).join('\n');
             break;
             
-          case 'ventas':
-            const vData = response.data;
-            message = `Total de beneficios entregados: ${vData.totalBeneficios}\nÚltimo mes: ${vData.ultimoMes}\n\nPor tipo:\n${vData.tiposBeneficios.map((item: any) => `${item.tipo}: ${item.cantidad}`).join('\n')}`;
+          case 'beneficiarios-dependientes':
+            const bdData = response.data;
+            message = `Total de registros: ${bdData.length}\n\nPrimeros 5 beneficiarios:\n${bdData.slice(0, 5).map((item: any) => `${item.beneficiario.nombre_apellido} (${item.dependientes.length} dependientes)`).join('\n')}`;
             break;
         }
         
@@ -114,11 +118,11 @@ export default function ReportesScreen() {
               setLoadingReports(prev => ({ ...prev, 'complete': true }));
               
               // Generate all reports
-              const [cfReport, hcReport, reReport, vReport] = await Promise.all([
+              const [cfReport, hcReport, reReport, bdReport] = await Promise.all([
                 reportesApi.generateCargaFamiliar(),
                 reportesApi.generateHabitantesPorCalle(),
                 reportesApi.generateRangoEdad(),
-                reportesApi.generateVentas()
+                reportesApi.getBeneficiariosConDependientes()
               ]);
               
               Alert.alert('Éxito', 'Reporte completo generado exitosamente');
@@ -136,7 +140,7 @@ export default function ReportesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Reportes</Text>
+        <Text style={styles.title}>Reportes SISCLAP</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -220,27 +224,21 @@ export default function ReportesScreen() {
           </View>
         </View>
 
-        {/* Recent Reports */}
-        <View style={styles.recentContainer}>
-          <Text style={styles.sectionTitle}>Reportes Recientes</Text>
-          <View style={styles.recentList}>
-            <View style={styles.recentItem}>
-              <View style={styles.recentInfo}>
-                <Text style={styles.recentTitle}>Reporte de Carga Familiar</Text>
-                <Text style={styles.recentDate}>Generado el 15/01/2024</Text>
-              </View>
-              <TouchableOpacity style={styles.recentAction}>
-                <Ionicons name="download-outline" size={20} color="#666" />
-              </TouchableOpacity>
+        {/* API Info */}
+        <View style={styles.apiInfoContainer}>
+          <Text style={styles.sectionTitle}>Información de la API</Text>
+          <View style={styles.apiInfoCard}>
+            <View style={styles.apiInfoItem}>
+              <Ionicons name="server" size={20} color="#4CAF50" />
+              <Text style={styles.apiInfoText}>Conectado a SISCLAP API</Text>
             </View>
-            <View style={styles.recentItem}>
-              <View style={styles.recentInfo}>
-                <Text style={styles.recentTitle}>Habitantes por Calle</Text>
-                <Text style={styles.recentDate}>Generado el 12/01/2024</Text>
-              </View>
-              <TouchableOpacity style={styles.recentAction}>
-                <Ionicons name="download-outline" size={20} color="#666" />
-              </TouchableOpacity>
+            <View style={styles.apiInfoItem}>
+              <Ionicons name="link" size={20} color="#2196F3" />
+              <Text style={styles.apiInfoText}>http://localhost:3000/api</Text>
+            </View>
+            <View style={styles.apiInfoItem}>
+              <Ionicons name="shield-checkmark" size={20} color="#FF9800" />
+              <Text style={styles.apiInfoText}>Datos sincronizados</Text>
             </View>
           </View>
         </View>
@@ -384,11 +382,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontWeight: '500',
   },
-  recentContainer: {
+  apiInfoContainer: {
     marginBottom: 25,
   },
-  recentList: {
+  apiInfoCard: {
     backgroundColor: 'white',
+    padding: 20,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: {
@@ -399,27 +398,14 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  recentItem: {
+  apiInfoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    marginBottom: 12,
   },
-  recentInfo: {
-    flex: 1,
-  },
-  recentTitle: {
+  apiInfoText: {
+    marginLeft: 12,
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 4,
-  },
-  recentDate: {
-    fontSize: 12,
     color: '#666',
-  },
-  recentAction: {
-    padding: 8,
   },
 });

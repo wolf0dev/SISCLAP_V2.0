@@ -9,13 +9,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BeneficiarioForm from '../forms/BeneficiarioForm';
-import { Beneficiario } from '../../types';
+import { Beneficiario, BeneficiarioForm as BeneficiarioFormType } from '../../types';
 
 interface BeneficiarioModalProps {
   visible: boolean;
   beneficiario?: Beneficiario;
   onClose: () => void;
-  onSubmit: (data: Omit<Beneficiario, 'id' | 'fechaRegistro'>) => Promise<void>;
+  onSubmit: (data: BeneficiarioFormType) => Promise<void>;
   loading?: boolean;
 }
 

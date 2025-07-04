@@ -42,9 +42,12 @@ export default function HomeScreen() {
 
   // Calculate real-time stats
   const totalBeneficiarios = beneficiarios.length;
-  const totalDependientes = beneficiarios.reduce((acc, b) => acc + b.dependientes.length, 0);
-  const beneficiariosActivos = beneficiarios.filter(b => b.status === 'Activo').length;
-  const totalBeneficios = beneficiarios.reduce((acc, b) => acc + b.beneficiosRecibidos.length, 0);
+  const beneficiariosActivos = beneficiarios.filter(b => b.estatus === 'Activo').length;
+  const beneficiariosInactivos = beneficiarios.filter(b => b.estatus === 'Inactivo').length;
+  
+  // Calcular distribución por género
+  const hombres = beneficiarios.filter(b => b.genero === 'Masculino').length;
+  const mujeres = beneficiarios.filter(b => b.genero === 'Femenino').length;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -60,8 +63,9 @@ export default function HomeScreen() {
             source={{ uri: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop' }}
             style={styles.logo}
           />
-          <Text style={styles.title}>Sistema de Gestión</Text>
-          <Text style={styles.subtitle}>Beneficios Comunitarios</Text>
+          <Text style={styles.title}>SISCLAP</Text>
+          <Text style={styles.subtitle}>Sistema de Gestión de Beneficios</Text>
+          <Text style={styles.community}>Brisas del Orinoco II</Text>
         </View>
 
         {/* Welcome Card */}
@@ -78,19 +82,25 @@ export default function HomeScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{totalBeneficiarios}</Text>
-              <Text style={styles.statLabel}>Beneficiarios</Text>
+              <Text style={styles.statLabel}>Total</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{totalDependientes}</Text>
-              <Text style={styles.statLabel}>Dependientes</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{beneficiariosActivos}</Text>
+              <Text style={[styles.statNumber, { color: '#4CAF50' }]}>{beneficiariosActivos}</Text>
               <Text style={styles.statLabel}>Activos</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{totalBeneficios}</Text>
-              <Text style={styles.statLabel}>Beneficios</Text>
+              <Text style={[styles.statNumber, { color: '#F44336' }]}>{beneficiariosInactivos}</Text>
+              <Text style={styles.statLabel}>Inactivos</Text>
+            </View>
+          </View>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: '#2196F3' }]}>{hombres}</Text>
+              <Text style={styles.statLabel}>Hombres</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: '#E91E63' }]}>{mujeres}</Text>
+              <Text style={styles.statLabel}>Mujeres</Text>
             </View>
           </View>
         </View>
@@ -138,33 +148,33 @@ export default function HomeScreen() {
 
         {/* Recent Activity */}
         <View style={styles.activityCard}>
-          <Text style={styles.activityTitle}>Actividad Reciente</Text>
+          <Text style={styles.activityTitle}>Información del Sistema</Text>
           <View style={styles.activityList}>
             <View style={styles.activityItem}>
               <View style={styles.activityIcon}>
-                <Ionicons name="person-add" size={16} color="#4CAF50" />
+                <Ionicons name="server" size={16} color="#4CAF50" />
               </View>
               <View style={styles.activityContent}>
-                <Text style={styles.activityText}>Nuevo beneficiario registrado</Text>
-                <Text style={styles.activityTime}>Hace 2 horas</Text>
+                <Text style={styles.activityText}>Sistema SISCLAP conectado</Text>
+                <Text style={styles.activityTime}>API funcionando correctamente</Text>
               </View>
             </View>
             <View style={styles.activityItem}>
               <View style={styles.activityIcon}>
-                <Ionicons name="document" size={16} color="#2196F3" />
+                <Ionicons name="shield-checkmark" size={16} color="#2196F3" />
               </View>
               <View style={styles.activityContent}>
-                <Text style={styles.activityText}>Reporte de carga familiar generado</Text>
-                <Text style={styles.activityTime}>Ayer</Text>
+                <Text style={styles.activityText}>Datos sincronizados</Text>
+                <Text style={styles.activityTime}>Última actualización: ahora</Text>
               </View>
             </View>
             <View style={styles.activityItem}>
               <View style={styles.activityIcon}>
-                <Ionicons name="create" size={16} color="#FF9800" />
+                <Ionicons name="people" size={16} color="#FF9800" />
               </View>
               <View style={styles.activityContent}>
-                <Text style={styles.activityText}>Información de beneficiario actualizada</Text>
-                <Text style={styles.activityTime}>Hace 3 días</Text>
+                <Text style={styles.activityText}>Base de datos activa</Text>
+                <Text style={styles.activityTime}>{totalBeneficiarios} registros disponibles</Text>
               </View>
             </View>
           </View>
@@ -193,7 +203,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
     textAlign: 'center',
@@ -203,6 +213,13 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 5,
+  },
+  community: {
+    fontSize: 14,
+    color: '#FF4040',
+    textAlign: 'center',
+    marginTop: 5,
+    fontWeight: '500',
   },
   welcomeCard: {
     backgroundColor: '#FF4040',
@@ -245,6 +262,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    marginBottom: 10,
   },
   statItem: {
     alignItems: 'center',

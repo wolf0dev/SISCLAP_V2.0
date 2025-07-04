@@ -1,53 +1,127 @@
+// Tipos principales del sistema SISCLAP
 export interface Beneficiario {
-  id: string;
-  nombre: string;
-  apellido: string;
   cedula: string;
+  nombre_apellido: string;
+  profesion: string;
+  fecha_nacimiento: string;
+  grado_instruccion: string;
+  enfermedad_cronica: string;
+  discapacidad: string;
+  genero: string;
   telefono: string;
-  email?: string;
-  fechaNacimiento: string;
-  direccion: {
-    calle: string;
-    casa: string;
-    sector: string;
-  };
-  status: 'Activo' | 'Inactivo';
-  fechaRegistro: string;
-  dependientes: Dependiente[];
-  beneficiosRecibidos: BeneficioRecibido[];
+  numero_casa: string;
+  id_calle: number;
+  nom_calle?: string; // Solo en respuestas
+  estado_civil: string;
+  estatus: 'Activo' | 'Inactivo';
 }
 
 export interface Dependiente {
-  id: string;
-  nombre: string;
-  apellido: string;
-  cedula?: string;
-  fechaNacimiento: string;
+  cedula: string;
+  nombre_apellido: string;
+  profesion: string;
+  fecha_nacimiento: string;
+  grado_instruccion: string;
+  enfermedad_cronica: string;
+  discapacidad: string;
+  genero: string;
+  telefono: string;
+  estado_civil: string;
   parentesco: string;
-  beneficiarioId: string;
+  cedula_beneficiario: string;
 }
 
-export interface BeneficioRecibido {
-  id: string;
-  tipo: string;
-  descripcion: string;
-  fecha: string;
-  cantidad?: number;
-  beneficiarioId: string;
+export interface Calle {
+  id_calle: number;
+  nom_calle: string;
+  id_com: number;
 }
 
-export interface Reporte {
-  id: string;
-  titulo: string;
-  tipo: 'carga-familiar' | 'habitantes-calle' | 'rango-edad' | 'ventas';
-  fechaGeneracion: string;
-  datos: any;
-  generadoPor: string;
+export interface BeneficiarioConDependientes {
+  beneficiario: Beneficiario;
+  dependientes: Dependiente[];
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
+export interface HabitantesPorCalle {
+  calle: string;
+  total_habitantes: number;
+  habitantes: {
+    cedula: string;
+    nombre_apellido: string;
+    numero_casa: string;
+  }[];
+}
+
+export interface RangoEdad {
+  rango: string;
+  total: number;
+  personas: {
+    cedula: string;
+    nombre_apellido: string;
+    fecha_nacimiento: string;
+    edad: number;
+  }[];
+}
+
+export interface ApiResponse<T = any> {
+  success?: boolean;
   data?: T;
   error?: string;
   message?: string;
 }
+
+// Tipos para formularios
+export interface BeneficiarioForm {
+  cedula: string;
+  nombre_apellido: string;
+  profesion: string;
+  fecha_nacimiento: string;
+  grado_instruccion: string;
+  enfermedad_cronica: string;
+  discapacidad: string;
+  genero: string;
+  telefono: string;
+  numero_casa: string;
+  id_calle: number;
+  estado_civil: string;
+  estatus: 'Activo' | 'Inactivo';
+}
+
+export interface DependienteForm {
+  cedula: string;
+  nombre_apellido: string;
+  profesion: string;
+  fecha_nacimiento: string;
+  grado_instruccion: string;
+  enfermedad_cronica: string;
+  discapacidad: string;
+  genero: string;
+  telefono: string;
+  estado_civil: string;
+  parentesco: string;
+  cedula_beneficiario: string;
+}
+
+// Constantes para opciones de formularios
+export const GENEROS = ['Masculino', 'Femenino'] as const;
+export const ESTADOS_CIVILES = ['Soltero', 'Casado', 'Divorciado', 'Viudo'] as const;
+export const GRADOS_INSTRUCCION = [
+  'Sin Instrucción',
+  'Primaria',
+  'Secundaria',
+  'Técnico',
+  'Universitario',
+  'Postgrado'
+] as const;
+export const PARENTESCOS = [
+  'Hijo',
+  'Hija',
+  'Esposo',
+  'Esposa',
+  'Padre',
+  'Madre',
+  'Hermano',
+  'Hermana',
+  'Otro'
+] as const;
+export const ESTATUS = ['Activo', 'Inactivo'] as const;

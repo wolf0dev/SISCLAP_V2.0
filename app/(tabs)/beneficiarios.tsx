@@ -6,7 +6,7 @@ import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
 import BeneficiarioCard from '../../src/components/cards/BeneficiarioCard';
 import BeneficiarioModal from '../../src/components/modals/BeneficiarioModal';
 import LoadingScreen from '../../src/components/common/LoadingScreen';
-import { Beneficiario } from '../../src/types';
+import { Beneficiario, BeneficiarioForm } from '../../src/types';
 
 export default function BeneficiariosScreen() {
   const {
@@ -17,7 +17,7 @@ export default function BeneficiariosScreen() {
     searchBeneficiarios,
     createBeneficiario,
     updateBeneficiario,
-    deleteBeneficiario
+    updateEstatusBeneficiario
   } = useBeneficiarios();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,28 +46,42 @@ export default function BeneficiariosScreen() {
   };
 
   const handleViewBeneficiario = (beneficiario: Beneficiario) => {
+    const edad = new Date().getFullYear() - new Date(beneficiario.fecha_nacimiento).getFullYear();
+    
     Alert.alert(
-      `${beneficiario.nombre} ${beneficiario.apellido}`,
-      `Cédula: ${beneficiario.cedula}\nTeléfono: ${beneficiario.telefono}\nEmail: ${beneficiario.email || 'No especificado'}\nDirección: ${beneficiario.direccion.calle}, Casa ${beneficiario.direccion.casa}\nSector: ${beneficiario.direccion.sector}\nEstado: ${beneficiario.status}\nDependientes: ${beneficiario.dependientes.length}\nFecha de registro: ${beneficiario.fechaRegistro}`,
+      `${beneficiario.nombre_apellido}`,
+      `Cédula: ${beneficiario.cedula}\n` +
+      `Edad: ${edad} años\n` +
+      `Género: ${beneficiario.genero}\n` +
+      `Estado Civil: ${beneficiario.estado_civil}\n` +
+      `Profesión: ${beneficiario.profesion}\n` +
+      `Instrucción: ${beneficiario.grado_instruccion}\n` +
+      `Teléfono: ${beneficiario.telefono}\n` +
+      `Dirección: ${beneficiario.nom_calle || `Calle ${beneficiario.id_calle}`}, Casa ${beneficiario.numero_casa}\n` +
+      `Enfermedad Crónica: ${beneficiario.enfermedad_cronica}\n` +
+      `Discapacidad: ${beneficiario.discapacidad}\n` +
+      `Estado: ${beneficiario.estatus}`,
       [{ text: 'Cerrar' }]
     );
   };
 
-  const handleDeleteBeneficiario = (beneficiario: Beneficiario) => {
+  const handleToggleStatus = (beneficiario: Beneficiario) => {
+    const newStatus = beneficiario.estatus === 'Activo' ? 'Inactivo' : 'Activo';
+    const action = newStatus === 'Activo' ? 'activar' : 'desactivar';
+    
     Alert.alert(
-      'Confirmar eliminación',
-      `¿Estás seguro de que deseas eliminar a ${beneficiario.nombre} ${beneficiario.apellido}?`,
+      'Cambiar Estado',
+      `¿Estás seguro de que deseas ${action} a ${beneficiario.nombre_apellido}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Eliminar',
-          style: 'destructive',
+          text: 'Confirmar',
           onPress: async () => {
             try {
-              await deleteBeneficiario(beneficiario.id);
-              Alert.alert('Éxito', 'Beneficiario eliminado correctamente');
+              await updateEstatusBeneficiario(beneficiario.cedula, newStatus);
+              Alert.alert('Éxito', `Beneficiario ${action === 'activar' ? 'activado' : 'desactivado'} correctamente`);
             } catch (error) {
-              Alert.alert('Error', error instanceof Error ? error.message : 'Error al eliminar');
+              Alert.alert('Error', error instanceof Error ? error.message : 'Error al cambiar estado');
             }
           }
         }
@@ -75,12 +89,12 @@ export default function BeneficiariosScreen() {
     );
   };
 
-  const handleSubmitForm = async (data: Omit<Beneficiario, 'id' | 'fechaRegistro'>) => {
+  const handleSubmitForm = async (data: BeneficiarioForm) => {
     try {
       setModalLoading(true);
       
       if (selectedBeneficiario) {
-        await updateBeneficiario(selectedBeneficiario.id, data);
+        await updateBeneficiario(selectedBeneficiario.cedula, data);
         Alert.alert('Éxito', 'Beneficiario actualizado correctamente');
       } else {
         await createBeneficiario(data);
@@ -120,7 +134,7 @@ export default function BeneficiariosScreen() {
         <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Buscar por nombre, apellido o cédula..."
+          placeholder="Buscar por nombre o cédula..."
           value={searchQuery}
           onChangeText={handleSearch}
         />
@@ -164,11 +178,11 @@ export default function BeneficiariosScreen() {
         ) : (
           beneficiarios.map((beneficiario) => (
             <BeneficiarioCard
-              key={beneficiario.id}
+              key={beneficiario.cedula}
               beneficiario={beneficiario}
               onView={() => handleViewBeneficiario(beneficiario)}
               onEdit={() => handleEditBeneficiario(beneficiario)}
-              onDelete={() => handleDeleteBeneficiario(beneficiario)}
+              onToggleStatus={() => handleToggleStatus(beneficiario)}
             />
           ))
         )}

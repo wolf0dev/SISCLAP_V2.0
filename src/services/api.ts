@@ -1,165 +1,129 @@
-import { Beneficiario, Dependiente, BeneficioRecibido, Reporte, ApiResponse } from '../types';
+import { 
+  Beneficiario, 
+  Dependiente, 
+  Calle, 
+  BeneficiarioConDependientes,
+  HabitantesPorCalle,
+  RangoEdad,
+  ApiResponse,
+  BeneficiarioForm,
+  DependienteForm
+} from '../types';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:3000/api';
 
-// Mock data for development
-let mockBeneficiarios: Beneficiario[] = [
-  {
-    id: '1',
-    nombre: 'María',
-    apellido: 'González',
-    cedula: '12345678',
-    telefono: '0414-1234567',
-    email: 'maria.gonzalez@email.com',
-    fechaNacimiento: '1985-03-15',
-    direccion: {
-      calle: 'Calle 1',
-      casa: '15',
-      sector: 'Brisas del Orinoco II'
-    },
-    status: 'Activo',
-    fechaRegistro: '2024-01-15',
-    dependientes: [
-      {
-        id: 'd1',
-        nombre: 'Carlos',
-        apellido: 'González',
-        fechaNacimiento: '2010-05-20',
-        parentesco: 'Hijo',
-        beneficiarioId: '1'
-      }
-    ],
-    beneficiosRecibidos: [
-      {
-        id: 'b1',
-        tipo: 'Alimentario',
-        descripcion: 'Caja CLAP',
-        fecha: '2024-01-20',
-        cantidad: 1,
-        beneficiarioId: '1'
-      }
-    ]
-  },
-  {
-    id: '2',
-    nombre: 'José',
-    apellido: 'Rodríguez',
-    cedula: '87654321',
-    telefono: '0424-7654321',
-    email: 'jose.rodriguez@email.com',
-    fechaNacimiento: '1978-08-22',
-    direccion: {
-      calle: 'Calle 2',
-      casa: '8',
-      sector: 'Brisas del Orinoco II'
-    },
-    status: 'Activo',
-    fechaRegistro: '2024-01-10',
-    dependientes: [],
-    beneficiosRecibidos: []
-  },
-  {
-    id: '3',
-    nombre: 'Ana',
-    apellido: 'Martínez',
-    cedula: '11223344',
-    telefono: '0412-1122334',
-    email: 'ana.martinez@email.com',
-    fechaNacimiento: '1990-12-05',
-    direccion: {
-      calle: 'Calle 3',
-      casa: '22',
-      sector: 'Brisas del Orinoco II'
-    },
-    status: 'Inactivo',
-    fechaRegistro: '2024-01-05',
-    dependientes: [],
-    beneficiosRecibidos: []
+// Función helper para manejar respuestas de la API
+const handleApiResponse = async <T>(response: Response): Promise<ApiResponse<T>> => {
+  try {
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || `Error ${response.status}: ${response.statusText}`
+      };
+    }
+
+    // Si la respuesta es un array o un objeto directo, lo envolvemos en data
+    if (Array.isArray(data) || (typeof data === 'object' && !data.message && !data.error)) {
+      return {
+        success: true,
+        data: data
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data || data,
+      message: data.message
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Error de conexión con el servidor'
+    };
   }
-];
+};
 
-// Simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// Función helper para hacer peticiones
+const makeRequest = async <T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+  };
 
+  // TODO: Agregar token de autenticación cuando esté implementado
+  // const token = await getAuthToken();
+  // if (token) {
+  //   defaultHeaders['Authorization'] = `Bearer ${token}`;
+  // }
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  };
+
+  try {
+    const response = await fetch(url, config);
+    return await handleApiResponse<T>(response);
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Error de conexión'
+    };
+  }
+};
+
+// API de Beneficiarios
 export const beneficiariosApi = {
   async getAll(): Promise<ApiResponse<Beneficiario[]>> {
-    await delay(500);
-    return {
-      success: true,
-      data: mockBeneficiarios
-    };
+    return makeRequest<Beneficiario[]>('/beneficiarios');
   },
 
-  async getById(id: string): Promise<ApiResponse<Beneficiario>> {
-    await delay(300);
-    const beneficiario = mockBeneficiarios.find(b => b.id === id);
-    if (!beneficiario) {
-      return {
-        success: false,
-        error: 'Beneficiario no encontrado'
-      };
-    }
-    return {
-      success: true,
-      data: beneficiario
-    };
+  async getByCedula(cedula: string): Promise<ApiResponse<Beneficiario>> {
+    return makeRequest<Beneficiario>(`/beneficiarios/${cedula}`);
   },
 
-  async create(beneficiario: Omit<Beneficiario, 'id' | 'fechaRegistro'>): Promise<ApiResponse<Beneficiario>> {
-    await delay(800);
-    const newBeneficiario: Beneficiario = {
-      ...beneficiario,
-      id: Date.now().toString(),
-      fechaRegistro: new Date().toISOString().split('T')[0]
-    };
-    mockBeneficiarios.push(newBeneficiario);
-    return {
-      success: true,
-      data: newBeneficiario,
-      message: 'Beneficiario creado exitosamente'
-    };
+  async create(beneficiario: BeneficiarioForm): Promise<ApiResponse<void>> {
+    return makeRequest<void>('/beneficiarios', {
+      method: 'POST',
+      body: JSON.stringify(beneficiario),
+    });
   },
 
-  async update(id: string, beneficiario: Partial<Beneficiario>): Promise<ApiResponse<Beneficiario>> {
-    await delay(600);
-    const index = mockBeneficiarios.findIndex(b => b.id === id);
-    if (index === -1) {
-      return {
-        success: false,
-        error: 'Beneficiario no encontrado'
-      };
-    }
-    mockBeneficiarios[index] = { ...mockBeneficiarios[index], ...beneficiario };
-    return {
-      success: true,
-      data: mockBeneficiarios[index],
-      message: 'Beneficiario actualizado exitosamente'
-    };
+  async update(cedula: string, beneficiario: Partial<BeneficiarioForm>): Promise<ApiResponse<void>> {
+    return makeRequest<void>(`/beneficiarios/${cedula}`, {
+      method: 'PUT',
+      body: JSON.stringify(beneficiario),
+    });
   },
 
-  async delete(id: string): Promise<ApiResponse<void>> {
-    await delay(400);
-    const index = mockBeneficiarios.findIndex(b => b.id === id);
-    if (index === -1) {
-      return {
-        success: false,
-        error: 'Beneficiario no encontrado'
-      };
-    }
-    mockBeneficiarios.splice(index, 1);
-    return {
-      success: true,
-      message: 'Beneficiario eliminado exitosamente'
-    };
+  async updateEstatus(cedula: string, estatus: 'Activo' | 'Inactivo'): Promise<ApiResponse<void>> {
+    return makeRequest<void>(`/beneficiarios/estatus/${cedula}`, {
+      method: 'PUT',
+      body: JSON.stringify({ estatus }),
+    });
   },
 
   async search(query: string): Promise<ApiResponse<Beneficiario[]>> {
-    await delay(300);
-    const filtered = mockBeneficiarios.filter(b => 
-      b.nombre.toLowerCase().includes(query.toLowerCase()) ||
-      b.apellido.toLowerCase().includes(query.toLowerCase()) ||
+    // Implementar búsqueda local por ahora, ya que la API no tiene endpoint específico
+    const response = await this.getAll();
+    if (!response.success || !response.data) {
+      return response;
+    }
+
+    const filtered = response.data.filter(b => 
+      b.nombre_apellido.toLowerCase().includes(query.toLowerCase()) ||
       b.cedula.includes(query)
     );
+
     return {
       success: true,
       data: filtered
@@ -167,89 +131,146 @@ export const beneficiariosApi = {
   }
 };
 
-export const reportesApi = {
-  async generateCargaFamiliar(): Promise<ApiResponse<any>> {
-    await delay(1000);
-    const data = {
-      totalBeneficiarios: mockBeneficiarios.length,
-      totalDependientes: mockBeneficiarios.reduce((acc, b) => acc + b.dependientes.length, 0),
-      promedioHijosPorFamilia: mockBeneficiarios.reduce((acc, b) => acc + b.dependientes.length, 0) / mockBeneficiarios.length,
-      familiasSinHijos: mockBeneficiarios.filter(b => b.dependientes.length === 0).length,
-      familiasConHijos: mockBeneficiarios.filter(b => b.dependientes.length > 0).length
-    };
-    return {
-      success: true,
-      data
-    };
+// API de Dependientes
+export const dependientesApi = {
+  async getByBeneficiario(cedulaBeneficiario: string): Promise<ApiResponse<Dependiente[]>> {
+    return makeRequest<Dependiente[]>(`/dependientes/${cedulaBeneficiario}`);
   },
 
-  async generateHabitantesPorCalle(): Promise<ApiResponse<any>> {
-    await delay(800);
-    const calles = mockBeneficiarios.reduce((acc, b) => {
-      const calle = b.direccion.calle;
-      acc[calle] = (acc[calle] || 0) + 1 + b.dependientes.length;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    return {
-      success: true,
-      data: Object.entries(calles).map(([calle, habitantes]) => ({ calle, habitantes }))
-    };
+  async getByCedula(cedula: string): Promise<ApiResponse<Dependiente>> {
+    return makeRequest<Dependiente>(`/dependientes/detalles/${cedula}`);
   },
 
-  async generateRangoEdad(): Promise<ApiResponse<any>> {
-    await delay(900);
-    const rangos = {
-      '0-17': 0,
-      '18-35': 0,
-      '36-50': 0,
-      '51-65': 0,
-      '65+': 0
-    };
-
-    mockBeneficiarios.forEach(b => {
-      const edad = new Date().getFullYear() - new Date(b.fechaNacimiento).getFullYear();
-      if (edad <= 17) rangos['0-17']++;
-      else if (edad <= 35) rangos['18-35']++;
-      else if (edad <= 50) rangos['36-50']++;
-      else if (edad <= 65) rangos['51-65']++;
-      else rangos['65+']++;
-
-      b.dependientes.forEach(d => {
-        const edadDep = new Date().getFullYear() - new Date(d.fechaNacimiento).getFullYear();
-        if (edadDep <= 17) rangos['0-17']++;
-        else if (edadDep <= 35) rangos['18-35']++;
-        else if (edadDep <= 50) rangos['36-50']++;
-        else if (edadDep <= 65) rangos['51-65']++;
-        else rangos['65+']++;
-      });
+  async create(dependiente: DependienteForm): Promise<ApiResponse<void>> {
+    return makeRequest<void>('/dependientes', {
+      method: 'POST',
+      body: JSON.stringify(dependiente),
     });
-
-    return {
-      success: true,
-      data: Object.entries(rangos).map(([rango, cantidad]) => ({ rango, cantidad }))
-    };
   },
 
-  async generateVentas(): Promise<ApiResponse<any>> {
-    await delay(700);
-    const beneficios = mockBeneficiarios.flatMap(b => b.beneficiosRecibidos);
-    const tiposBeneficios = beneficios.reduce((acc, b) => {
-      acc[b.tipo] = (acc[b.tipo] || 0) + (b.cantidad || 1);
-      return acc;
-    }, {} as Record<string, number>);
+  async update(cedula: string, dependiente: Partial<DependienteForm>): Promise<ApiResponse<void>> {
+    return makeRequest<void>(`/dependientes/${cedula}`, {
+      method: 'PUT',
+      body: JSON.stringify(dependiente),
+    });
+  },
+
+  async delete(cedula: string): Promise<ApiResponse<void>> {
+    return makeRequest<void>(`/dependientes/${cedula}`, {
+      method: 'DELETE',
+    });
+  }
+};
+
+// API de Calles
+export const callesApi = {
+  async getAll(): Promise<ApiResponse<Calle[]>> {
+    return makeRequest<Calle[]>('/calles');
+  }
+};
+
+// API de Reportes
+export const reportesApi = {
+  async getHabitantesPorCalle(idCalle?: number): Promise<ApiResponse<HabitantesPorCalle | HabitantesPorCalle[]>> {
+    const endpoint = idCalle ? `/reportes/habitantes-calle/${idCalle}` : '/reportes/habitantes-calle/';
+    return makeRequest<HabitantesPorCalle | HabitantesPorCalle[]>(endpoint);
+  },
+
+  async getRangoEdad(min?: number, max?: number): Promise<ApiResponse<RangoEdad>> {
+    const params = new URLSearchParams();
+    if (min !== undefined) params.append('min', min.toString());
+    if (max !== undefined) params.append('max', max.toString());
+    
+    const endpoint = `/reportes/rango-edad${params.toString() ? `?${params.toString()}` : ''}`;
+    return makeRequest<RangoEdad>(endpoint);
+  },
+
+  async getBeneficiariosConDependientes(): Promise<ApiResponse<BeneficiarioConDependientes[]>> {
+    return makeRequest<BeneficiarioConDependientes[]>('/reportes/beneficiarios-dependientes');
+  },
+
+  async getBeneficiarioConDependientes(cedula: string): Promise<ApiResponse<BeneficiarioConDependientes>> {
+    return makeRequest<BeneficiarioConDependientes>(`/reportes/beneficiario-dependientes/${cedula}`);
+  },
+
+  // Métodos de compatibilidad con la interfaz anterior
+  async generateCargaFamiliar(): Promise<ApiResponse<any>> {
+    const response = await this.getBeneficiariosConDependientes();
+    if (!response.success || !response.data) {
+      return response;
+    }
+
+    const data = response.data;
+    const totalBeneficiarios = data.length;
+    const totalDependientes = data.reduce((acc, item) => acc + item.dependientes.length, 0);
+    const familiasConHijos = data.filter(item => item.dependientes.length > 0).length;
+    const familiasSinHijos = totalBeneficiarios - familiasConHijos;
 
     return {
       success: true,
       data: {
-        totalBeneficios: beneficios.length,
-        tiposBeneficios: Object.entries(tiposBeneficios).map(([tipo, cantidad]) => ({ tipo, cantidad })),
-        ultimoMes: beneficios.filter(b => {
-          const fecha = new Date(b.fecha);
-          const haceUnMes = new Date();
-          haceUnMes.setMonth(haceUnMes.getMonth() - 1);
-          return fecha >= haceUnMes;
-        }).length
+        totalBeneficiarios,
+        totalDependientes,
+        promedioHijosPorFamilia: totalBeneficiarios > 0 ? totalDependientes / totalBeneficiarios : 0,
+        familiasConHijos,
+        familiasSinHijos
+      }
+    };
+  },
+
+  async generateHabitantesPorCalle(): Promise<ApiResponse<any>> {
+    const response = await this.getHabitantesPorCalle();
+    if (!response.success || !response.data) {
+      return response;
+    }
+
+    // Convertir formato de respuesta
+    const data = Array.isArray(response.data) ? response.data : [response.data];
+    return {
+      success: true,
+      data: data.map(item => ({
+        calle: item.calle,
+        habitantes: item.total_habitantes
+      }))
+    };
+  },
+
+  async generateRangoEdad(): Promise<ApiResponse<any>> {
+    // Generar reportes para diferentes rangos de edad
+    const rangos = [
+      { min: 0, max: 17, label: '0-17' },
+      { min: 18, max: 35, label: '18-35' },
+      { min: 36, max: 50, label: '36-50' },
+      { min: 51, max: 65, label: '51-65' },
+      { min: 66, max: 120, label: '65+' }
+    ];
+
+    const resultados = [];
+    
+    for (const rango of rangos) {
+      const response = await this.getRangoEdad(rango.min, rango.max);
+      if (response.success && response.data) {
+        resultados.push({
+          rango: rango.label,
+          cantidad: response.data.total
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: resultados
+    };
+  },
+
+  async generateVentas(): Promise<ApiResponse<any>> {
+    // Por ahora retornamos datos mock ya que no hay endpoint específico para beneficios
+    return {
+      success: true,
+      data: {
+        totalBeneficios: 0,
+        tiposBeneficios: [],
+        ultimoMes: 0
       }
     };
   }

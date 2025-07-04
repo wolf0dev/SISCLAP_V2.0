@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,13 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Beneficiario } from '../../types';
+import { Picker } from '@react-native-picker/picker';
+import { Beneficiario, BeneficiarioForm as BeneficiarioFormType, GENEROS, ESTADOS_CIVILES, GRADOS_INSTRUCCION, ESTATUS } from '../../types';
+import { useCalles } from '../../hooks/useCalles';
 
 interface BeneficiarioFormProps {
   beneficiario?: Beneficiario;
-  onSubmit: (data: Omit<Beneficiario, 'id' | 'fechaRegistro'>) => Promise<void>;
+  onSubmit: (data: BeneficiarioFormType) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -25,49 +27,55 @@ export default function BeneficiarioForm({
   onCancel, 
   loading = false 
 }: BeneficiarioFormProps) {
-  const [formData, setFormData] = useState({
-    nombre: beneficiario?.nombre || '',
-    apellido: beneficiario?.apellido || '',
+  const { calles, loading: callesLoading } = useCalles();
+  
+  const [formData, setFormData] = useState<BeneficiarioFormType>({
     cedula: beneficiario?.cedula || '',
+    nombre_apellido: beneficiario?.nombre_apellido || '',
+    profesion: beneficiario?.profesion || '',
+    fecha_nacimiento: beneficiario?.fecha_nacimiento || '',
+    grado_instruccion: beneficiario?.grado_instruccion || 'Primaria',
+    enfermedad_cronica: beneficiario?.enfermedad_cronica || 'Ninguna',
+    discapacidad: beneficiario?.discapacidad || 'Ninguna',
+    genero: beneficiario?.genero || 'Masculino',
     telefono: beneficiario?.telefono || '',
-    email: beneficiario?.email || '',
-    fechaNacimiento: beneficiario?.fechaNacimiento || '',
-    direccion: {
-      calle: beneficiario?.direccion.calle || '',
-      casa: beneficiario?.direccion.casa || '',
-      sector: beneficiario?.direccion.sector || 'Brisas del Orinoco II'
-    },
-    status: beneficiario?.status || 'Activo' as const,
-    dependientes: beneficiario?.dependientes || [],
-    beneficiosRecibidos: beneficiario?.beneficiosRecibidos || []
+    numero_casa: beneficiario?.numero_casa || '',
+    id_calle: beneficiario?.id_calle || (calles.length > 0 ? calles[0].id_calle : 1),
+    estado_civil: beneficiario?.estado_civil || 'Soltero',
+    estatus: beneficiario?.estatus || 'Activo'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (calles.length > 0 && !beneficiario) {
+      setFormData(prev => ({ ...prev, id_calle: calles[0].id_calle }));
+    }
+  }, [calles, beneficiario]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es requerido';
-    if (!formData.apellido.trim()) newErrors.apellido = 'El apellido es requerido';
     if (!formData.cedula.trim()) newErrors.cedula = 'La cédula es requerida';
+    if (!formData.nombre_apellido.trim()) newErrors.nombre_apellido = 'El nombre y apellido son requeridos';
+    if (!formData.profesion.trim()) newErrors.profesion = 'La profesión es requerida';
+    if (!formData.fecha_nacimiento.trim()) newErrors.fecha_nacimiento = 'La fecha de nacimiento es requerida';
     if (!formData.telefono.trim()) newErrors.telefono = 'El teléfono es requerido';
-    if (!formData.fechaNacimiento.trim()) newErrors.fechaNacimiento = 'La fecha de nacimiento es requerida';
-    if (!formData.direccion.calle.trim()) newErrors.calle = 'La calle es requerida';
-    if (!formData.direccion.casa.trim()) newErrors.casa = 'El número de casa es requerido';
+    if (!formData.numero_casa.trim()) newErrors.numero_casa = 'El número de casa es requerido';
 
-    // Validate cedula format (basic validation)
+    // Validate cedula format (7-8 digits)
     if (formData.cedula && !/^\d{7,8}$/.test(formData.cedula)) {
       newErrors.cedula = 'La cédula debe tener 7 u 8 dígitos';
     }
 
     // Validate phone format
-    if (formData.telefono && !/^0\d{3}-\d{7}$/.test(formData.telefono)) {
-      newErrors.telefono = 'Formato: 0XXX-XXXXXXX';
+    if (formData.telefono && !/^04\d{9}$/.test(formData.telefono.replace(/[-\s]/g, ''))) {
+      newErrors.telefono = 'Formato: 04XXXXXXXXX';
     }
 
-    // Validate email if provided
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email inválido';
+    // Validate date format
+    if (formData.fecha_nacimiento && !/^\d{4}-\d{2}-\d{2}$/.test(formData.fecha_nacimiento)) {
+      newErrors.fecha_nacimiento = 'Formato: YYYY-MM-DD';
     }
 
     setErrors(newErrors);
@@ -87,25 +95,23 @@ export default function BeneficiarioForm({
     }
   };
 
-  const updateField = (field: string, value: string) => {
-    if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...(prev as any)[parent],
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, [field]: value }));
-    }
+  const updateField = (field: keyof BeneficiarioFormType, value: string | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
     
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
+
+  if (callesLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF4040" />
+        <Text style={styles.loadingText}>Cargando formulario...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -116,34 +122,10 @@ export default function BeneficiarioForm({
       </View>
 
       <View style={styles.form}>
-        {/* Personal Information */}
+        {/* Información Personal */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Personal</Text>
           
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nombre *</Text>
-            <TextInput
-              style={[styles.input, errors.nombre && styles.inputError]}
-              value={formData.nombre}
-              onChangeText={(value) => updateField('nombre', value)}
-              placeholder="Ingrese el nombre"
-              autoCapitalize="words"
-            />
-            {errors.nombre && <Text style={styles.errorText}>{errors.nombre}</Text>}
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Apellido *</Text>
-            <TextInput
-              style={[styles.input, errors.apellido && styles.inputError]}
-              value={formData.apellido}
-              onChangeText={(value) => updateField('apellido', value)}
-              placeholder="Ingrese el apellido"
-              autoCapitalize="words"
-            />
-            {errors.apellido && <Text style={styles.errorText}>{errors.apellido}</Text>}
-          </View>
-
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Cédula *</Text>
             <TextInput
@@ -153,23 +135,98 @@ export default function BeneficiarioForm({
               placeholder="12345678"
               keyboardType="numeric"
               maxLength={8}
+              editable={!beneficiario} // No editable si es actualización
             />
             {errors.cedula && <Text style={styles.errorText}>{errors.cedula}</Text>}
           </View>
 
           <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nombre y Apellido *</Text>
+            <TextInput
+              style={[styles.input, errors.nombre_apellido && styles.inputError]}
+              value={formData.nombre_apellido}
+              onChangeText={(value) => updateField('nombre_apellido', value)}
+              placeholder="Juan Pérez"
+              autoCapitalize="words"
+            />
+            {errors.nombre_apellido && <Text style={styles.errorText}>{errors.nombre_apellido}</Text>}
+          </View>
+
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Fecha de Nacimiento *</Text>
             <TextInput
-              style={[styles.input, errors.fechaNacimiento && styles.inputError]}
-              value={formData.fechaNacimiento}
-              onChangeText={(value) => updateField('fechaNacimiento', value)}
-              placeholder="YYYY-MM-DD"
+              style={[styles.input, errors.fecha_nacimiento && styles.inputError]}
+              value={formData.fecha_nacimiento}
+              onChangeText={(value) => updateField('fecha_nacimiento', value)}
+              placeholder="1990-05-15"
             />
-            {errors.fechaNacimiento && <Text style={styles.errorText}>{errors.fechaNacimiento}</Text>}
+            {errors.fecha_nacimiento && <Text style={styles.errorText}>{errors.fecha_nacimiento}</Text>}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Género *</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formData.genero}
+                onValueChange={(value) => updateField('genero', value)}
+                style={styles.picker}
+              >
+                {GENEROS.map(genero => (
+                  <Picker.Item key={genero} label={genero} value={genero} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Estado Civil *</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formData.estado_civil}
+                onValueChange={(value) => updateField('estado_civil', value)}
+                style={styles.picker}
+              >
+                {ESTADOS_CIVILES.map(estado => (
+                  <Picker.Item key={estado} label={estado} value={estado} />
+                ))}
+              </Picker>
+            </View>
           </View>
         </View>
 
-        {/* Contact Information */}
+        {/* Información Profesional */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Información Profesional</Text>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Profesión *</Text>
+            <TextInput
+              style={[styles.input, errors.profesion && styles.inputError]}
+              value={formData.profesion}
+              onChangeText={(value) => updateField('profesion', value)}
+              placeholder="Ingeniero, Docente, Estudiante, etc."
+              autoCapitalize="words"
+            />
+            {errors.profesion && <Text style={styles.errorText}>{errors.profesion}</Text>}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Grado de Instrucción *</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formData.grado_instruccion}
+                onValueChange={(value) => updateField('grado_instruccion', value)}
+                style={styles.picker}
+              >
+                {GRADOS_INSTRUCCION.map(grado => (
+                  <Picker.Item key={grado} label={grado} value={grado} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        </View>
+
+        {/* Información de Contacto */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información de Contacto</Text>
           
@@ -179,95 +236,96 @@ export default function BeneficiarioForm({
               style={[styles.input, errors.telefono && styles.inputError]}
               value={formData.telefono}
               onChangeText={(value) => updateField('telefono', value)}
-              placeholder="0414-1234567"
+              placeholder="04141234567"
               keyboardType="phone-pad"
             />
             {errors.telefono && <Text style={styles.errorText}>{errors.telefono}</Text>}
           </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              value={formData.email}
-              onChangeText={(value) => updateField('email', value)}
-              placeholder="ejemplo@email.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-          </View>
         </View>
 
-        {/* Address Information */}
+        {/* Dirección */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Dirección</Text>
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Calle *</Text>
-            <TextInput
-              style={[styles.input, errors.calle && styles.inputError]}
-              value={formData.direccion.calle}
-              onChangeText={(value) => updateField('direccion.calle', value)}
-              placeholder="Calle 1"
-            />
-            {errors.calle && <Text style={styles.errorText}>{errors.calle}</Text>}
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formData.id_calle}
+                onValueChange={(value) => updateField('id_calle', value)}
+                style={styles.picker}
+              >
+                {calles.map(calle => (
+                  <Picker.Item 
+                    key={calle.id_calle} 
+                    label={calle.nom_calle} 
+                    value={calle.id_calle} 
+                  />
+                ))}
+              </Picker>
+            </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Casa *</Text>
+            <Text style={styles.label}>Número de Casa *</Text>
             <TextInput
-              style={[styles.input, errors.casa && styles.inputError]}
-              value={formData.direccion.casa}
-              onChangeText={(value) => updateField('direccion.casa', value)}
-              placeholder="15"
+              style={[styles.input, errors.numero_casa && styles.inputError]}
+              value={formData.numero_casa}
+              onChangeText={(value) => updateField('numero_casa', value)}
+              placeholder="123"
             />
-            {errors.casa && <Text style={styles.errorText}>{errors.casa}</Text>}
+            {errors.numero_casa && <Text style={styles.errorText}>{errors.numero_casa}</Text>}
           </View>
+        </View>
 
+        {/* Información Médica */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Información Médica</Text>
+          
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Sector</Text>
+            <Text style={styles.label}>Enfermedad Crónica</Text>
             <TextInput
               style={styles.input}
-              value={formData.direccion.sector}
-              onChangeText={(value) => updateField('direccion.sector', value)}
-              placeholder="Brisas del Orinoco II"
+              value={formData.enfermedad_cronica}
+              onChangeText={(value) => updateField('enfermedad_cronica', value)}
+              placeholder="Ninguna, Diabetes, Hipertensión, etc."
+              autoCapitalize="words"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Discapacidad</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.discapacidad}
+              onChangeText={(value) => updateField('discapacidad', value)}
+              placeholder="Ninguna, Visual, Auditiva, Motora, etc."
+              autoCapitalize="words"
             />
           </View>
         </View>
 
-        {/* Status */}
+        {/* Estado */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Estado</Text>
           <View style={styles.statusContainer}>
-            <TouchableOpacity
-              style={[
-                styles.statusButton,
-                formData.status === 'Activo' && styles.statusButtonActive
-              ]}
-              onPress={() => updateField('status', 'Activo')}
-            >
-              <Text style={[
-                styles.statusButtonText,
-                formData.status === 'Activo' && styles.statusButtonTextActive
-              ]}>
-                Activo
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.statusButton,
-                formData.status === 'Inactivo' && styles.statusButtonActive
-              ]}
-              onPress={() => updateField('status', 'Inactivo')}
-            >
-              <Text style={[
-                styles.statusButtonText,
-                formData.status === 'Inactivo' && styles.statusButtonTextActive
-              ]}>
-                Inactivo
-              </Text>
-            </TouchableOpacity>
+            {ESTATUS.map(status => (
+              <TouchableOpacity
+                key={status}
+                style={[
+                  styles.statusButton,
+                  formData.estatus === status && styles.statusButtonActive
+                ]}
+                onPress={() => updateField('estatus', status)}
+              >
+                <Text style={[
+                  styles.statusButtonText,
+                  formData.estatus === status && styles.statusButtonTextActive
+                ]}>
+                  {status}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
       </View>
@@ -307,6 +365,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
   },
   header: {
     backgroundColor: 'white',
@@ -366,6 +435,15 @@ const styles = StyleSheet.create({
     color: '#FF4040',
     fontSize: 12,
     marginTop: 4,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+  },
+  picker: {
+    height: 50,
   },
   statusContainer: {
     flexDirection: 'row',

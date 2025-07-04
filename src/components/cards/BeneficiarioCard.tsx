@@ -8,13 +8,15 @@ interface BeneficiarioCardProps {
   onView: () => void;
   onEdit: () => void;
   onDelete?: () => void;
+  onToggleStatus?: () => void;
 }
 
 export default function BeneficiarioCard({ 
   beneficiario, 
   onView, 
   onEdit, 
-  onDelete 
+  onDelete,
+  onToggleStatus
 }: BeneficiarioCardProps) {
   const calcularEdad = (fechaNacimiento: string) => {
     const hoy = new Date();
@@ -33,13 +35,13 @@ export default function BeneficiarioCard({
     <TouchableOpacity style={styles.card} onPress={onView}>
       <View style={styles.cardHeader}>
         <Text style={styles.beneficiarioName}>
-          {beneficiario.nombre} {beneficiario.apellido}
+          {beneficiario.nombre_apellido}
         </Text>
         <View style={[
           styles.statusBadge,
-          { backgroundColor: beneficiario.status === 'Activo' ? '#4CAF50' : '#F44336' }
+          { backgroundColor: beneficiario.estatus === 'Activo' ? '#4CAF50' : '#F44336' }
         ]}>
-          <Text style={styles.statusText}>{beneficiario.status}</Text>
+          <Text style={styles.statusText}>{beneficiario.estatus}</Text>
         </View>
       </View>
       
@@ -55,19 +57,25 @@ export default function BeneficiarioCard({
         <View style={styles.infoRow}>
           <Ionicons name="location" size={16} color="#666" />
           <Text style={styles.infoText}>
-            {beneficiario.direccion.calle}, Casa {beneficiario.direccion.casa}
+            {beneficiario.nom_calle || `Calle ${beneficiario.id_calle}`}, Casa {beneficiario.numero_casa}
           </Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="calendar" size={16} color="#666" />
           <Text style={styles.infoText}>
-            Edad: {calcularEdad(beneficiario.fechaNacimiento)} años
+            Edad: {calcularEdad(beneficiario.fecha_nacimiento)} años
           </Text>
         </View>
         <View style={styles.infoRow}>
-          <Ionicons name="people" size={16} color="#666" />
+          <Ionicons name="briefcase" size={16} color="#666" />
           <Text style={styles.infoText}>
-            Dependientes: {beneficiario.dependientes.length}
+            Profesión: {beneficiario.profesion}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Ionicons name="school" size={16} color="#666" />
+          <Text style={styles.infoText}>
+            Instrucción: {beneficiario.grado_instruccion}
           </Text>
         </View>
       </View>
@@ -81,6 +89,18 @@ export default function BeneficiarioCard({
           <Ionicons name="create" size={18} color="#FF9800" />
           <Text style={[styles.actionText, { color: '#FF9800' }]}>Editar</Text>
         </TouchableOpacity>
+        {onToggleStatus && (
+          <TouchableOpacity style={styles.actionButton} onPress={onToggleStatus}>
+            <Ionicons 
+              name={beneficiario.estatus === 'Activo' ? 'pause' : 'play'} 
+              size={18} 
+              color="#9C27B0" 
+            />
+            <Text style={[styles.actionText, { color: '#9C27B0' }]}>
+              {beneficiario.estatus === 'Activo' ? 'Desactivar' : 'Activar'}
+            </Text>
+          </TouchableOpacity>
+        )}
         {onDelete && (
           <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
             <Ionicons name="trash" size={18} color="#F44336" />
@@ -141,6 +161,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     color: '#666',
+    flex: 1,
   },
   cardActions: {
     flexDirection: 'row',
@@ -148,15 +169,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     paddingTop: 12,
+    flexWrap: 'wrap',
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 16,
+    marginBottom: 4,
   },
   actionText: {
     marginLeft: 4,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
 });
