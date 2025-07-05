@@ -33,8 +33,7 @@
     },
     "web": {
       "favicon": "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop",
-      "bundler": "metro",
-      "output": "server"
+      "bundler": "metro"
     },
     "plugins": [
       "expo-router"
