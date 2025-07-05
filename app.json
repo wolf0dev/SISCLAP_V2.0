@@ -4,10 +4,10 @@
     "slug": "sistema-gestion-beneficios",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=512&h=512&fit=crop",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop",
       "resizeMode": "contain",
       "backgroundColor": "#FF4040"
     },
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=512&h=512&fit=crop",
         "backgroundColor": "#FF4040"
       },
       "package": "com.brisasorinoco.beneficios",
@@ -32,7 +32,7 @@
       "versionCode": 1
     },
     "web": {
-      "favicon": "./assets/icon.png",
+      "favicon": "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop",
       "bundler": "metro",
       "output": "server"
     },
