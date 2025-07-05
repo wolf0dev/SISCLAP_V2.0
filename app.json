@@ -28,11 +28,13 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
-      ]
+      ],
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/icon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "server"
     },
     "plugins": [
       "expo-router"
