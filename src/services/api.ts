@@ -240,7 +240,7 @@ export const callesApi = {
   }
 };
 
-// API de Reportes
+// API de Reportes - Updated to match the API documentation
 export const reportesApi = {
   async getHabitantesPorCalle(idCalle?: number): Promise<ApiResponse<HabitantesPorCalle | HabitantesPorCalle[]>> {
     const endpoint = idCalle ? `/reportes/habitantes-calle/${idCalle}` : '/reportes/habitantes-calle/';
@@ -264,85 +264,115 @@ export const reportesApi = {
     return makeRequest<BeneficiarioConDependientes>(`/reportes/beneficiario-dependientes/${cedula}`);
   },
 
-  // Métodos de compatibilidad con la interfaz anterior
+  // Enhanced report generation methods
   async generateCargaFamiliar(): Promise<ApiResponse<any>> {
-    const response = await this.getBeneficiariosConDependientes();
-    if (!response.success || !response.data) {
-      return response;
-    }
-
-    const data = response.data;
-    const totalBeneficiarios = data.length;
-    const totalDependientes = data.reduce((acc, item) => acc + item.dependientes.length, 0);
-    const familiasConHijos = data.filter(item => item.dependientes.length > 0).length;
-    const familiasSinHijos = totalBeneficiarios - familiasConHijos;
-
-    return {
-      success: true,
-      data: {
-        totalBeneficiarios,
-        totalDependientes,
-        promedioHijosPorFamilia: totalBeneficiarios > 0 ? totalDependientes / totalBeneficiarios : 0,
-        familiasConHijos,
-        familiasSinHijos
+    try {
+      const response = await this.getBeneficiariosConDependientes();
+      if (!response.success || !response.data) {
+        return response;
       }
-    };
+
+      const data = response.data;
+      const totalBeneficiarios = data.length;
+      const totalDependientes = data.reduce((acc, item) => acc + item.dependientes.length, 0);
+      const familiasConHijos = data.filter(item => item.dependientes.length > 0).length;
+      const familiasSinHijos = totalBeneficiarios - familiasConHijos;
+
+      return {
+        success: true,
+        data: {
+          totalBeneficiarios,
+          totalDependientes,
+          promedioHijosPorFamilia: totalBeneficiarios > 0 ? totalDependientes / totalBeneficiarios : 0,
+          familiasConHijos,
+          familiasSinHijos,
+          detalles: data
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Error al generar reporte de carga familiar'
+      };
+    }
   },
 
   async generateHabitantesPorCalle(): Promise<ApiResponse<any>> {
-    const response = await this.getHabitantesPorCalle();
-    if (!response.success || !response.data) {
-      return response;
-    }
+    try {
+      const response = await this.getHabitantesPorCalle();
+      if (!response.success || !response.data) {
+        return response;
+      }
 
-    // Convertir formato de respuesta
-    const data = Array.isArray(response.data) ? response.data : [response.data];
-    return {
-      success: true,
-      data: data.map(item => ({
+      // Convert API response format to display format
+      const data = Array.isArray(response.data) ? response.data : [response.data];
+      const formattedData = data.map(item => ({
         calle: item.calle,
-        habitantes: item.total_habitantes
-      }))
-    };
+        habitantes: item.total_habitantes,
+        detalles: item.habitantes
+      }));
+
+      return {
+        success: true,
+        data: formattedData
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Error al generar reporte de habitantes por calle'
+      };
+    }
   },
 
   async generateRangoEdad(): Promise<ApiResponse<any>> {
-    // Generar reportes para diferentes rangos de edad
-    const rangos = [
-      { min: 0, max: 17, label: '0-17' },
-      { min: 18, max: 35, label: '18-35' },
-      { min: 36, max: 50, label: '36-50' },
-      { min: 51, max: 65, label: '51-65' },
-      { min: 66, max: 120, label: '65+' }
-    ];
+    try {
+      // Generate reports for different age ranges
+      const rangos = [
+        { min: 0, max: 17, label: '0-17' },
+        { min: 18, max: 35, label: '18-35' },
+        { min: 36, max: 50, label: '36-50' },
+        { min: 51, max: 65, label: '51-65' },
+        { min: 66, max: 120, label: '65+' }
+      ];
 
-    const resultados = [];
-    
-    for (const rango of rangos) {
-      const response = await this.getRangoEdad(rango.min, rango.max);
-      if (response.success && response.data) {
-        resultados.push({
-          rango: rango.label,
-          cantidad: response.data.total
-        });
+      const resultados = [];
+      
+      for (const rango of rangos) {
+        try {
+          const response = await this.getRangoEdad(rango.min, rango.max);
+          if (response.success && response.data) {
+            resultados.push({
+              rango: rango.label,
+              cantidad: response.data.total,
+              personas: response.data.personas
+            });
+          } else {
+            // If API call fails, add empty result
+            resultados.push({
+              rango: rango.label,
+              cantidad: 0,
+              personas: []
+            });
+          }
+        } catch (error) {
+          console.error(`Error getting age range ${rango.label}:`, error);
+          resultados.push({
+            rango: rango.label,
+            cantidad: 0,
+            personas: []
+          });
+        }
       }
+
+      return {
+        success: true,
+        data: resultados
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Error al generar reporte de rango de edad'
+      };
     }
-
-    return {
-      success: true,
-      data: resultados
-    };
-  },
-
-  async generateVentas(): Promise<ApiResponse<any>> {
-    // Por ahora retornamos datos mock ya que no hay endpoint específico para beneficios
-    return {
-      success: true,
-      data: {
-        totalBeneficios: 0,
-        tiposBeneficios: [],
-        ultimoMes: 0
-      }
-    };
   }
 };

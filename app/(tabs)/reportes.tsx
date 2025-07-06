@@ -3,8 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { reportesApi } from '../../src/services/api';
+import { pdfService } from '../../src/services/pdfService';
+import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
 
 export default function ReportesScreen() {
+  const { beneficiarios } = useBeneficiarios();
   const [loadingReports, setLoadingReports] = useState<Record<string, boolean>>({});
 
   const reportTypes = [
@@ -42,11 +45,17 @@ export default function ReportesScreen() {
     },
   ];
 
+  // Calculate real-time stats
+  const totalBeneficiarios = beneficiarios.length;
+  const beneficiariosActivos = beneficiarios.filter(b => b.estatus === 'Activo').length;
+  const beneficiariosInactivos = beneficiarios.filter(b => b.estatus === 'Inactivo').length;
+  const callesUnicas = [...new Set(beneficiarios.map(b => b.id_calle))].length;
+
   const stats = [
-    { label: 'Total Beneficiarios', value: '0', color: '#FF4040' },
-    { label: 'Reportes Disponibles', value: '4', color: '#4CAF50' },
-    { label: 'Calles Registradas', value: '0', color: '#2196F3' },
-    { label: 'Datos Actualizados', value: 'Hoy', color: '#FF9800' },
+    { label: 'Total Beneficiarios', value: totalBeneficiarios.toString(), color: '#FF4040' },
+    { label: 'Beneficiarios Activos', value: beneficiariosActivos.toString(), color: '#4CAF50' },
+    { label: 'Beneficiarios Inactivos', value: beneficiariosInactivos.toString(), color: '#F44336' },
+    { label: 'Calles Registradas', value: callesUnicas.toString(), color: '#2196F3' },
   ];
 
   const generateReport = async (reportType: typeof reportTypes[0]) => {
@@ -55,54 +64,85 @@ export default function ReportesScreen() {
       
       const response = await reportType.generator();
       
-      if (response.success) {
-        // Format the data for display
+      if (response.success && response.data) {
+        // Show preview first
         let message = '';
+        let pdfContent = '';
         
         switch (reportType.id) {
           case 'carga-familiar':
             const cfData = response.data;
             message = `Total de Beneficiarios: ${cfData.totalBeneficiarios}\nFamilias con dependientes: ${cfData.familiasConHijos}\nFamilias sin dependientes: ${cfData.familiasSinHijos}\nPromedio de dependientes por familia: ${cfData.promedioHijosPorFamilia.toFixed(1)}`;
+            pdfContent = pdfService.formatCargaFamiliarContent(cfData);
             break;
             
           case 'habitantes-calle':
             const hcData = response.data;
             if (Array.isArray(hcData)) {
               message = hcData.map((item: any) => `${item.calle}: ${item.habitantes} habitantes`).join('\n');
+              pdfContent = pdfService.formatHabitantesPorCalleContent(hcData);
             } else {
               message = `${hcData.calle}: ${hcData.habitantes} habitantes`;
+              pdfContent = pdfService.formatHabitantesPorCalleContent([hcData]);
             }
             break;
             
           case 'rango-edad':
             const reData = response.data;
             message = reData.map((item: any) => `${item.rango} años: ${item.cantidad} personas`).join('\n');
+            pdfContent = pdfService.formatRangoEdadContent(reData);
             break;
             
           case 'beneficiarios-dependientes':
             const bdData = response.data;
             message = `Total de registros: ${bdData.length}\n\nPrimeros 5 beneficiarios:\n${bdData.slice(0, 5).map((item: any) => `${item.beneficiario.nombre_apellido} (${item.dependientes.length} dependientes)`).join('\n')}`;
+            pdfContent = pdfService.formatBeneficiariosConDependientesContent(bdData);
             break;
         }
         
-        Alert.alert(reportType.title, message, [
-          { text: 'Cerrar' },
-          { text: 'Exportar', onPress: () => exportReport(reportType.title, message) }
-        ]);
+        Alert.alert(
+          reportType.title, 
+          message, 
+          [
+            { text: 'Cerrar' },
+            { 
+              text: 'Generar PDF', 
+              onPress: () => exportToPDF(reportType.title, pdfContent)
+            }
+          ]
+        );
       } else {
         Alert.alert('Error', response.error || 'Error al generar el reporte');
       }
     } catch (error) {
+      console.error('Error generating report:', error);
       Alert.alert('Error', 'Error de conexión al generar el reporte');
     } finally {
       setLoadingReports(prev => ({ ...prev, [reportType.id]: false }));
     }
   };
 
-  const exportReport = (title: string, data: string) => {
-    // In a real app, you would implement actual export functionality
-    // For now, we'll just show a success message
-    Alert.alert('Exportar', `El reporte "${title}" se ha exportado exitosamente.`);
+  const exportToPDF = async (title: string, content: string) => {
+    try {
+      setLoadingReports(prev => ({ ...prev, 'pdf': true }));
+      
+      const fileName = `${title.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`;
+      
+      const fileUri = await pdfService.generatePDF({
+        title,
+        content,
+        fileName
+      });
+      
+      await pdfService.sharePDF(fileUri);
+      
+      Alert.alert('Éxito', 'Reporte generado y compartido exitosamente');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      Alert.alert('Error', 'Error al generar el archivo PDF');
+    } finally {
+      setLoadingReports(prev => ({ ...prev, 'pdf': false }));
+    }
   };
 
   const generateCompleteReport = async () => {
@@ -125,8 +165,33 @@ export default function ReportesScreen() {
                 reportesApi.getBeneficiariosConDependientes()
               ]);
               
-              Alert.alert('Éxito', 'Reporte completo generado exitosamente');
+              // Combine all content
+              let completeContent = '';
+              
+              if (cfReport.success && cfReport.data) {
+                completeContent += pdfService.formatCargaFamiliarContent(cfReport.data);
+              }
+              
+              if (hcReport.success && hcReport.data) {
+                const hcData = Array.isArray(hcReport.data) ? hcReport.data : [hcReport.data];
+                completeContent += pdfService.formatHabitantesPorCalleContent(hcData);
+              }
+              
+              if (reReport.success && reReport.data) {
+                completeContent += pdfService.formatRangoEdadContent(reReport.data);
+              }
+              
+              if (bdReport.success && bdReport.data) {
+                completeContent += pdfService.formatBeneficiariosConDependientesContent(bdReport.data);
+              }
+              
+              if (completeContent) {
+                await exportToPDF('Reporte Completo SISCLAP', completeContent);
+              } else {
+                Alert.alert('Error', 'No se pudieron generar los datos del reporte');
+              }
             } catch (error) {
+              console.error('Error generating complete report:', error);
               Alert.alert('Error', 'Error al generar el reporte completo');
             } finally {
               setLoadingReports(prev => ({ ...prev, 'complete': false }));
@@ -183,7 +248,7 @@ export default function ReportesScreen() {
                       style={styles.actionButton}
                       onPress={() => generateReport(report)}
                     >
-                      <Ionicons name="download" size={20} color="#666" />
+                      <Ionicons name="document-text" size={20} color="#666" />
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={styles.actionButton}
@@ -216,17 +281,23 @@ export default function ReportesScreen() {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.quickActionCard}
-              onPress={() => Alert.alert('Exportar', 'Funcionalidad de exportación disponible próximamente')}
+              onPress={() => {
+                Alert.alert(
+                  'Exportar Datos',
+                  'Selecciona un reporte específico para exportar a PDF, o genera el reporte completo.',
+                  [{ text: 'Entendido' }]
+                );
+              }}
             >
               <Ionicons name="share" size={32} color="#4CAF50" />
-              <Text style={styles.quickActionText}>Exportar Datos</Text>
+              <Text style={styles.quickActionText}>Exportar a PDF</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* API Info */}
         <View style={styles.apiInfoContainer}>
-          <Text style={styles.sectionTitle}>Información de la API</Text>
+          <Text style={styles.sectionTitle}>Información del Sistema</Text>
           <View style={styles.apiInfoCard}>
             <View style={styles.apiInfoItem}>
               <Ionicons name="server" size={20} color="#4CAF50" />
@@ -238,10 +309,24 @@ export default function ReportesScreen() {
             </View>
             <View style={styles.apiInfoItem}>
               <Ionicons name="shield-checkmark" size={20} color="#FF9800" />
-              <Text style={styles.apiInfoText}>Datos sincronizados</Text>
+              <Text style={styles.apiInfoText}>Datos sincronizados en tiempo real</Text>
+            </View>
+            <View style={styles.apiInfoItem}>
+              <Ionicons name="document" size={20} color="#9C27B0" />
+              <Text style={styles.apiInfoText}>Exportación PDF disponible</Text>
             </View>
           </View>
         </View>
+
+        {/* Loading Indicator */}
+        {loadingReports['pdf'] && (
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingCard}>
+              <ActivityIndicator size="large" color="#FF4040" />
+              <Text style={styles.loadingText}>Generando PDF...</Text>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -407,5 +492,36 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 14,
     color: '#666',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingCard: {
+    backgroundColor: 'white',
+    padding: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
   },
 });
