@@ -240,7 +240,7 @@ export const callesApi = {
   }
 };
 
-// API de Reportes - Updated to match the API documentation
+// API de Reportes - Updated to match the API documentation exactly
 export const reportesApi = {
   async getHabitantesPorCalle(idCalle?: number): Promise<ApiResponse<HabitantesPorCalle | HabitantesPorCalle[]>> {
     const endpoint = idCalle ? `/reportes/habitantes-calle/${idCalle}` : '/reportes/habitantes-calle/';
@@ -269,7 +269,10 @@ export const reportesApi = {
     try {
       const response = await this.getBeneficiariosConDependientes();
       if (!response.success || !response.data) {
-        return response;
+        return {
+          success: false,
+          error: response.error || 'Error al obtener datos de beneficiarios'
+        };
       }
 
       const data = response.data;
@@ -290,6 +293,7 @@ export const reportesApi = {
         }
       };
     } catch (error) {
+      console.error('Error generating carga familiar report:', error);
       return {
         success: false,
         error: 'Error al generar reporte de carga familiar'
@@ -301,7 +305,10 @@ export const reportesApi = {
     try {
       const response = await this.getHabitantesPorCalle();
       if (!response.success || !response.data) {
-        return response;
+        return {
+          success: false,
+          error: response.error || 'Error al obtener datos de habitantes por calle'
+        };
       }
 
       // Convert API response format to display format
@@ -317,61 +324,10 @@ export const reportesApi = {
         data: formattedData
       };
     } catch (error) {
+      console.error('Error generating habitantes por calle report:', error);
       return {
         success: false,
         error: 'Error al generar reporte de habitantes por calle'
-      };
-    }
-  },
-
-  async generateRangoEdad(): Promise<ApiResponse<any>> {
-    try {
-      // Generate reports for different age ranges
-      const rangos = [
-        { min: 0, max: 17, label: '0-17' },
-        { min: 18, max: 35, label: '18-35' },
-        { min: 36, max: 50, label: '36-50' },
-        { min: 51, max: 65, label: '51-65' },
-        { min: 66, max: 120, label: '65+' }
-      ];
-
-      const resultados = [];
-      
-      for (const rango of rangos) {
-        try {
-          const response = await this.getRangoEdad(rango.min, rango.max);
-          if (response.success && response.data) {
-            resultados.push({
-              rango: rango.label,
-              cantidad: response.data.total,
-              personas: response.data.personas
-            });
-          } else {
-            // If API call fails, add empty result
-            resultados.push({
-              rango: rango.label,
-              cantidad: 0,
-              personas: []
-            });
-          }
-        } catch (error) {
-          console.error(`Error getting age range ${rango.label}:`, error);
-          resultados.push({
-            rango: rango.label,
-            cantidad: 0,
-            personas: []
-          });
-        }
-      }
-
-      return {
-        success: true,
-        data: resultados
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: 'Error al generar reporte de rango de edad'
       };
     }
   }

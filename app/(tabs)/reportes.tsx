@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { reportesApi } from '../../src/services/api';
@@ -9,6 +9,8 @@ import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
 export default function ReportesScreen() {
   const { beneficiarios } = useBeneficiarios();
   const [loadingReports, setLoadingReports] = useState<Record<string, boolean>>({});
+  const [ageRangeModalVisible, setAgeRangeModalVisible] = useState(false);
+  const [ageRange, setAgeRange] = useState({ min: '', max: '' });
 
   const reportTypes = [
     {
@@ -30,10 +32,10 @@ export default function ReportesScreen() {
     {
       id: 'rango-edad',
       title: 'Rango de Edad',
-      description: 'Clasificación por edades',
+      description: 'Clasificación por edades personalizada',
       icon: 'calendar',
       color: '#FF9800',
-      generator: reportesApi.generateRangoEdad,
+      generator: null, // Special handling
     },
     {
       id: 'beneficiarios-dependientes',
@@ -58,7 +60,55 @@ export default function ReportesScreen() {
     { label: 'Calles Registradas', value: callesUnicas.toString(), color: '#2196F3' },
   ];
 
+  const generateAgeRangeReport = async (minAge: number, maxAge: number) => {
+    try {
+      setLoadingReports(prev => ({ ...prev, 'rango-edad': true }));
+      
+      const response = await reportesApi.getRangoEdad(minAge, maxAge);
+      
+      if (response.success && response.data) {
+        const data = response.data;
+        const message = `Rango de edad ${minAge}-${maxAge} años:\n${data.total} personas encontradas`;
+        
+        const pdfContent = pdfService.formatRangoEdadContent([{
+          rango: `${minAge}-${maxAge}`,
+          cantidad: data.total,
+          personas: data.personas
+        }]);
+        
+        Alert.alert(
+          'Reporte de Rango de Edad', 
+          message, 
+          [
+            { text: 'Cerrar' },
+            { 
+              text: 'Generar PDF', 
+              onPress: () => exportToPDF('Reporte de Rango de Edad', pdfContent)
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', response.error || 'Error al generar el reporte de edad');
+      }
+    } catch (error) {
+      console.error('Error generating age range report:', error);
+      Alert.alert('Error', 'Error de conexión al generar el reporte');
+    } finally {
+      setLoadingReports(prev => ({ ...prev, 'rango-edad': false }));
+    }
+  };
+
   const generateReport = async (reportType: typeof reportTypes[0]) => {
+    if (reportType.id === 'rango-edad') {
+      setAgeRangeModalVisible(true);
+      return;
+    }
+
+    if (!reportType.generator) {
+      Alert.alert('Error', 'Generador de reporte no disponible');
+      return;
+    }
+
     try {
       setLoadingReports(prev => ({ ...prev, [reportType.id]: true }));
       
@@ -85,12 +135,6 @@ export default function ReportesScreen() {
               message = `${hcData.calle}: ${hcData.habitantes} habitantes`;
               pdfContent = pdfService.formatHabitantesPorCalleContent([hcData]);
             }
-            break;
-            
-          case 'rango-edad':
-            const reData = response.data;
-            message = reData.map((item: any) => `${item.rango} años: ${item.cantidad} personas`).join('\n');
-            pdfContent = pdfService.formatRangoEdadContent(reData);
             break;
             
           case 'beneficiarios-dependientes':
@@ -145,6 +189,29 @@ export default function ReportesScreen() {
     }
   };
 
+  const handleAgeRangeSubmit = () => {
+    const minAge = parseInt(ageRange.min);
+    const maxAge = parseInt(ageRange.max);
+
+    if (isNaN(minAge) || isNaN(maxAge)) {
+      Alert.alert('Error', 'Por favor ingrese valores numéricos válidos');
+      return;
+    }
+
+    if (minAge < 0 || maxAge < 0) {
+      Alert.alert('Error', 'Las edades no pueden ser negativas');
+      return;
+    }
+
+    if (minAge > maxAge) {
+      Alert.alert('Error', 'La edad mínima no puede ser mayor que la edad máxima');
+      return;
+    }
+
+    setAgeRangeModalVisible(false);
+    generateAgeRangeReport(minAge, maxAge);
+  };
+
   const generateCompleteReport = async () => {
     Alert.alert(
       'Generar Reporte Completo',
@@ -158,10 +225,9 @@ export default function ReportesScreen() {
               setLoadingReports(prev => ({ ...prev, 'complete': true }));
               
               // Generate all reports
-              const [cfReport, hcReport, reReport, bdReport] = await Promise.all([
+              const [cfReport, hcReport, bdReport] = await Promise.all([
                 reportesApi.generateCargaFamiliar(),
                 reportesApi.generateHabitantesPorCalle(),
-                reportesApi.generateRangoEdad(),
                 reportesApi.getBeneficiariosConDependientes()
               ]);
               
@@ -175,10 +241,6 @@ export default function ReportesScreen() {
               if (hcReport.success && hcReport.data) {
                 const hcData = Array.isArray(hcReport.data) ? hcReport.data : [hcReport.data];
                 completeContent += pdfService.formatHabitantesPorCalleContent(hcData);
-              }
-              
-              if (reReport.success && reReport.data) {
-                completeContent += pdfService.formatRangoEdadContent(reReport.data);
               }
               
               if (bdReport.success && bdReport.data) {
@@ -317,17 +379,122 @@ export default function ReportesScreen() {
             </View>
           </View>
         </View>
+      </ScrollView>
 
-        {/* Loading Indicator */}
-        {loadingReports['pdf'] && (
-          <View style={styles.loadingOverlay}>
-            <View style={styles.loadingCard}>
-              <ActivityIndicator size="large" color="#FF4040" />
-              <Text style={styles.loadingText}>Generando PDF...</Text>
+      {/* Age Range Modal */}
+      <Modal
+        visible={ageRangeModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setAgeRangeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Configurar Rango de Edad</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setAgeRangeModalVisible(false)}
+              >
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalDescription}>
+                Ingrese el rango de edad que desea consultar:
+              </Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Edad Mínima</Text>
+                <TextInput
+                  style={styles.input}
+                  value={ageRange.min}
+                  onChangeText={(text) => setAgeRange(prev => ({ ...prev, min: text }))}
+                  placeholder="Ej: 18"
+                  keyboardType="numeric"
+                  maxLength={3}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Edad Máxima</Text>
+                <TextInput
+                  style={styles.input}
+                  value={ageRange.max}
+                  onChangeText={(text) => setAgeRange(prev => ({ ...prev, max: text }))}
+                  placeholder="Ej: 65"
+                  keyboardType="numeric"
+                  maxLength={3}
+                />
+              </View>
+
+              <View style={styles.examplesContainer}>
+                <Text style={styles.examplesTitle}>Ejemplos comunes:</Text>
+                <View style={styles.exampleButtons}>
+                  <TouchableOpacity
+                    style={styles.exampleButton}
+                    onPress={() => setAgeRange({ min: '0', max: '17' })}
+                  >
+                    <Text style={styles.exampleButtonText}>0-17 años</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.exampleButton}
+                    onPress={() => setAgeRange({ min: '18', max: '35' })}
+                  >
+                    <Text style={styles.exampleButtonText}>18-35 años</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.exampleButton}
+                    onPress={() => setAgeRange({ min: '36', max: '65' })}
+                  >
+                    <Text style={styles.exampleButtonText}>36-65 años</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.exampleButton}
+                    onPress={() => setAgeRange({ min: '65', max: '120' })}
+                  >
+                    <Text style={styles.exampleButtonText}>65+ años</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setAgeRangeModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.generateButton, loadingReports['rango-edad'] && styles.generateButtonDisabled]}
+                onPress={handleAgeRangeSubmit}
+                disabled={loadingReports['rango-edad']}
+              >
+                {loadingReports['rango-edad'] ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="bar-chart" size={20} color="white" />
+                    <Text style={styles.generateButtonText}>Generar Reporte</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
-        )}
-      </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Loading Indicator */}
+      {loadingReports['pdf'] && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="large" color="#FF4040" />
+            <Text style={styles.loadingText}>Generando PDF...</Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -523,5 +690,132 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  examplesContainer: {
+    marginTop: 20,
+  },
+  examplesTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  exampleButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  exampleButton: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  exampleButtonText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
+  },
+  generateButton: {
+    flex: 1,
+    backgroundColor: '#FF4040',
+    padding: 16,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  generateButtonDisabled: {
+    opacity: 0.6,
+  },
+  generateButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
   },
 });
