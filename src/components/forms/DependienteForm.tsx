@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,47 +11,47 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { Beneficiario, BeneficiarioForm as BeneficiarioFormType, GENEROS, ESTADOS_CIVILES, GRADOS_INSTRUCCION, ESTATUS } from '../../types';
-import { useCalles } from '../../hooks/useCalles';
+import { 
+  Dependiente, 
+  DependienteForm as DependienteFormType, 
+  Beneficiario,
+  GENEROS, 
+  ESTADOS_CIVILES, 
+  GRADOS_INSTRUCCION, 
+  PARENTESCOS 
+} from '../../types';
 
-interface BeneficiarioFormProps {
-  beneficiario?: Beneficiario;
-  onSubmit: (data: BeneficiarioFormType) => Promise<void>;
+interface DependienteFormProps {
+  dependiente?: Dependiente;
+  beneficiarios: Beneficiario[];
+  onSubmit: (data: DependienteFormType) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
 
-export default function BeneficiarioForm({ 
-  beneficiario, 
+export default function DependienteForm({ 
+  dependiente, 
+  beneficiarios,
   onSubmit, 
   onCancel, 
   loading = false 
-}: BeneficiarioFormProps) {
-  const { calles, loading: callesLoading } = useCalles();
-  
-  const [formData, setFormData] = useState<BeneficiarioFormType>({
-    cedula: beneficiario?.cedula || '',
-    nombre_apellido: beneficiario?.nombre_apellido || '',
-    profesion: beneficiario?.profesion || '',
-    fecha_nacimiento: beneficiario?.fecha_nacimiento || '',
-    grado_instruccion: beneficiario?.grado_instruccion || 'Primaria',
-    enfermedad_cronica: beneficiario?.enfermedad_cronica || 'Ninguna',
-    discapacidad: beneficiario?.discapacidad || 'Ninguna',
-    genero: beneficiario?.genero || 'Masculino',
-    telefono: beneficiario?.telefono || '',
-    numero_casa: beneficiario?.numero_casa || '',
-    id_calle: beneficiario?.id_calle || (calles.length > 0 ? calles[0].id_calle : 1),
-    estado_civil: beneficiario?.estado_civil || 'Soltero',
-    estatus: beneficiario?.estatus || 'ACTIVO'
+}: DependienteFormProps) {
+  const [formData, setFormData] = useState<DependienteFormType>({
+    cedula: dependiente?.cedula || '',
+    nombre_apellido: dependiente?.nombre_apellido || '',
+    profesion: dependiente?.profesion || '',
+    fecha_nacimiento: dependiente?.fecha_nacimiento || '',
+    grado_instruccion: dependiente?.grado_instruccion || 'Primaria',
+    enfermedad_cronica: dependiente?.enfermedad_cronica || 'Ninguna',
+    discapacidad: dependiente?.discapacidad || 'Ninguna',
+    genero: dependiente?.genero || 'Masculino',
+    telefono: dependiente?.telefono || '',
+    estado_civil: dependiente?.estado_civil || 'Soltero',
+    parentesco: dependiente?.parentesco || 'Hijo',
+    cedula_beneficiario: dependiente?.cedula_beneficiario || (beneficiarios.length > 0 ? beneficiarios[0].cedula : '')
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (calles.length > 0 && !beneficiario) {
-      setFormData(prev => ({ ...prev, id_calle: calles[0].id_calle }));
-    }
-  }, [calles, beneficiario]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -61,7 +61,7 @@ export default function BeneficiarioForm({
     if (!formData.profesion.trim()) newErrors.profesion = 'La profesión es requerida';
     if (!formData.fecha_nacimiento.trim()) newErrors.fecha_nacimiento = 'La fecha de nacimiento es requerida';
     if (!formData.telefono.trim()) newErrors.telefono = 'El teléfono es requerido';
-    if (!formData.numero_casa.trim()) newErrors.numero_casa = 'El número de casa es requerido';
+    if (!formData.cedula_beneficiario.trim()) newErrors.cedula_beneficiario = 'Debe seleccionar un beneficiario';
 
     // Validate cedula format (7-8 digits)
     if (formData.cedula && !/^\d{7,8}$/.test(formData.cedula)) {
@@ -95,7 +95,7 @@ export default function BeneficiarioForm({
     }
   };
 
-  const updateField = (field: keyof BeneficiarioFormType, value: string | number) => {
+  const updateField = (field: keyof DependienteFormType, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Clear error when user starts typing
@@ -104,20 +104,13 @@ export default function BeneficiarioForm({
     }
   };
 
-  if (callesLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF4040" />
-        <Text style={styles.loadingText}>Cargando formulario...</Text>
-      </View>
-    );
-  }
+  const selectedBeneficiario = beneficiarios.find(b => b.cedula === formData.cedula_beneficiario);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>
-          {beneficiario ? 'Editar Beneficiario' : 'Nuevo Beneficiario'}
+          {dependiente ? 'Editar Dependiente' : 'Nuevo Dependiente'}
         </Text>
       </View>
 
@@ -135,7 +128,7 @@ export default function BeneficiarioForm({
               placeholder="12345678"
               keyboardType="numeric"
               maxLength={8}
-              editable={!beneficiario} // No editable si es actualización
+              editable={!dependiente} // No editable si es actualización
             />
             {errors.cedula && <Text style={styles.errorText}>{errors.cedula}</Text>}
           </View>
@@ -146,7 +139,7 @@ export default function BeneficiarioForm({
               style={[styles.input, errors.nombre_apellido && styles.inputError]}
               value={formData.nombre_apellido}
               onChangeText={(value) => updateField('nombre_apellido', value)}
-              placeholder="Juan Pérez"
+              placeholder="María Pérez"
               autoCapitalize="words"
             />
             {errors.nombre_apellido && <Text style={styles.errorText}>{errors.nombre_apellido}</Text>}
@@ -158,7 +151,7 @@ export default function BeneficiarioForm({
               style={[styles.input, errors.fecha_nacimiento && styles.inputError]}
               value={formData.fecha_nacimiento}
               onChangeText={(value) => updateField('fecha_nacimiento', value)}
-              placeholder="1990-05-15"
+              placeholder="2010-03-20"
             />
             {errors.fecha_nacimiento && <Text style={styles.errorText}>{errors.fecha_nacimiento}</Text>}
           </View>
@@ -204,7 +197,7 @@ export default function BeneficiarioForm({
               style={[styles.input, errors.profesion && styles.inputError]}
               value={formData.profesion}
               onChangeText={(value) => updateField('profesion', value)}
-              placeholder="Ingeniero, Docente, Estudiante, etc."
+              placeholder="Estudiante, Empleado, etc."
               autoCapitalize="words"
             />
             {errors.profesion && <Text style={styles.errorText}>{errors.profesion}</Text>}
@@ -243,38 +236,56 @@ export default function BeneficiarioForm({
           </View>
         </View>
 
-        {/* Dirección */}
+        {/* Relación Familiar */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dirección</Text>
+          <Text style={styles.sectionTitle}>Relación Familiar</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Calle *</Text>
+            <Text style={styles.label}>Parentesco *</Text>
             <View style={styles.pickerContainer}>
               <Picker
-                selectedValue={formData.id_calle}
-                onValueChange={(value) => updateField('id_calle', value)}
+                selectedValue={formData.parentesco}
+                onValueChange={(value) => updateField('parentesco', value)}
                 style={styles.picker}
               >
-                {calles.map(calle => (
-                  <Picker.Item 
-                    key={calle.id_calle} 
-                    label={calle.nom_calle} 
-                    value={calle.id_calle} 
-                  />
+                {PARENTESCOS.map(parentesco => (
+                  <Picker.Item key={parentesco} label={parentesco} value={parentesco} />
                 ))}
               </Picker>
             </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Número de Casa *</Text>
-            <TextInput
-              style={[styles.input, errors.numero_casa && styles.inputError]}
-              value={formData.numero_casa}
-              onChangeText={(value) => updateField('numero_casa', value)}
-              placeholder="123"
-            />
-            {errors.numero_casa && <Text style={styles.errorText}>{errors.numero_casa}</Text>}
+            <Text style={styles.label}>Beneficiario *</Text>
+            <View style={[styles.pickerContainer, errors.cedula_beneficiario && styles.inputError]}>
+              <Picker
+                selectedValue={formData.cedula_beneficiario}
+                onValueChange={(value) => updateField('cedula_beneficiario', value)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Seleccionar beneficiario..." value="" />
+                {beneficiarios.map(beneficiario => (
+                  <Picker.Item 
+                    key={beneficiario.cedula} 
+                    label={`${beneficiario.nombre_apellido} (${beneficiario.cedula})`} 
+                    value={beneficiario.cedula} 
+                  />
+                ))}
+              </Picker>
+            </View>
+            {errors.cedula_beneficiario && <Text style={styles.errorText}>{errors.cedula_beneficiario}</Text>}
+            
+            {selectedBeneficiario && (
+              <View style={styles.beneficiarioInfo}>
+                <Text style={styles.beneficiarioInfoTitle}>Información del Beneficiario:</Text>
+                <Text style={styles.beneficiarioInfoText}>
+                  📍 {selectedBeneficiario.nom_calle || `Calle ${selectedBeneficiario.id_calle}`}, Casa {selectedBeneficiario.numero_casa}
+                </Text>
+                <Text style={styles.beneficiarioInfoText}>
+                  📞 {selectedBeneficiario.telefono}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -304,30 +315,6 @@ export default function BeneficiarioForm({
             />
           </View>
         </View>
-
-        {/* Estado */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Estado</Text>
-          <View style={styles.statusContainer}>
-            {ESTATUS.map(status => (
-              <TouchableOpacity
-                key={status}
-                style={[
-                  styles.statusButton,
-                  formData.estatus === status && styles.statusButtonActive
-                ]}
-                onPress={() => updateField('estatus', status)}
-              >
-                <Text style={[
-                  styles.statusButtonText,
-                  formData.estatus === status && styles.statusButtonTextActive
-                ]}>
-                  {status}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
       </View>
 
       {/* Action Buttons */}
@@ -351,7 +338,7 @@ export default function BeneficiarioForm({
             <>
               <Ionicons name="checkmark" size={20} color="white" />
               <Text style={styles.submitButtonText}>
-                {beneficiario ? 'Actualizar' : 'Crear'}
+                {dependiente ? 'Actualizar' : 'Crear'}
               </Text>
             </>
           )}
@@ -365,17 +352,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
   },
   header: {
     backgroundColor: 'white',
@@ -445,29 +421,24 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
   },
-  statusContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statusButton: {
-    flex: 1,
+  beneficiarioInfo: {
+    marginTop: 12,
     padding: 12,
+    backgroundColor: '#f8f9fa',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    alignItems: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF4040',
   },
-  statusButtonActive: {
-    backgroundColor: '#FF4040',
-    borderColor: '#FF4040',
-  },
-  statusButtonText: {
+  beneficiarioInfoTitle: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
   },
-  statusButtonTextActive: {
-    color: 'white',
+  beneficiarioInfoText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
   },
   actions: {
     flexDirection: 'row',

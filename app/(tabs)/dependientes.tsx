@@ -2,87 +2,102 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useDependientes } from '../../src/hooks/useDependientes';
 import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
-import BeneficiarioCard from '../../src/components/cards/BeneficiarioCard';
-import BeneficiarioModal from '../../src/components/modals/BeneficiarioModal';
+import DependienteCard from '../../src/components/cards/DependienteCard';
+import DependienteModal from '../../src/components/modals/DependienteModal';
 import LoadingScreen from '../../src/components/common/LoadingScreen';
-import { Beneficiario, BeneficiarioForm } from '../../src/types';
+import { Dependiente, DependienteForm } from '../../src/types';
 
-export default function BeneficiariosActivosScreen() {
+export default function DependientesScreen() {
+  const { beneficiarios } = useBeneficiarios();
   const {
-    beneficiarios,
+    dependientes,
     loading,
     error,
-    loadBeneficiarios,
-    searchBeneficiarios,
-    createBeneficiario,
-    updateBeneficiario,
-    updateEstatusBeneficiario
-  } = useBeneficiarios();
+    loadDependientes,
+    createDependiente,
+    updateDependiente,
+    deleteDependiente
+  } = useDependientes();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedBeneficiario, setSelectedBeneficiario] = useState<Beneficiario | undefined>();
+  const [selectedDependiente, setSelectedDependiente] = useState<Dependiente | undefined>();
   const [modalLoading, setModalLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Filter only active beneficiarios
-  const beneficiariosActivos = beneficiarios.filter(b => b.estatus === 'ACTIVO');
+  // Get all dependientes from all beneficiarios
+  React.useEffect(() => {
+    const loadAllDependientes = async () => {
+      const activeBeneficiarios = beneficiarios.filter(b => b.estatus === 'ACTIVO');
+      for (const beneficiario of activeBeneficiarios) {
+        await loadDependientes(beneficiario.cedula);
+      }
+    };
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    if (query.trim()) {
-      await searchBeneficiarios(query);
-    } else {
-      await loadBeneficiarios();
+    if (beneficiarios.length > 0) {
+      loadAllDependientes();
     }
+  }, [beneficiarios]);
+
+  // Filter dependientes based on search
+  const filteredDependientes = dependientes.filter(d => 
+    d.nombre_apellido.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    d.cedula.includes(searchQuery) ||
+    d.cedula_beneficiario.includes(searchQuery)
+  );
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
   };
 
-  const handleCreateBeneficiario = () => {
-    setSelectedBeneficiario(undefined);
+  const handleCreateDependiente = () => {
+    setSelectedDependiente(undefined);
     setModalVisible(true);
   };
 
-  const handleEditBeneficiario = (beneficiario: Beneficiario) => {
-    setSelectedBeneficiario(beneficiario);
+  const handleEditDependiente = (dependiente: Dependiente) => {
+    setSelectedDependiente(dependiente);
     setModalVisible(true);
   };
 
-  const handleViewBeneficiario = (beneficiario: Beneficiario) => {
-    const edad = new Date().getFullYear() - new Date(beneficiario.fecha_nacimiento).getFullYear();
+  const handleViewDependiente = (dependiente: Dependiente) => {
+    const edad = new Date().getFullYear() - new Date(dependiente.fecha_nacimiento).getFullYear();
+    const beneficiario = beneficiarios.find(b => b.cedula === dependiente.cedula_beneficiario);
     
     Alert.alert(
-      `${beneficiario.nombre_apellido}`,
-      `Cédula: ${beneficiario.cedula}\n` +
+      `${dependiente.nombre_apellido}`,
+      `Cédula: ${dependiente.cedula}\n` +
       `Edad: ${edad} años\n` +
-      `Género: ${beneficiario.genero}\n` +
-      `Estado Civil: ${beneficiario.estado_civil}\n` +
-      `Profesión: ${beneficiario.profesion}\n` +
-      `Instrucción: ${beneficiario.grado_instruccion}\n` +
-      `Teléfono: ${beneficiario.telefono}\n` +
-      `Dirección: ${beneficiario.nom_calle || `Calle ${beneficiario.id_calle}`}, Casa ${beneficiario.numero_casa}\n` +
-      `Enfermedad Crónica: ${beneficiario.enfermedad_cronica}\n` +
-      `Discapacidad: ${beneficiario.discapacidad}\n` +
-      `Estado: ${beneficiario.estatus}`,
+      `Género: ${dependiente.genero}\n` +
+      `Estado Civil: ${dependiente.estado_civil}\n` +
+      `Profesión: ${dependiente.profesion}\n` +
+      `Instrucción: ${dependiente.grado_instruccion}\n` +
+      `Teléfono: ${dependiente.telefono}\n` +
+      `Parentesco: ${dependiente.parentesco}\n` +
+      `Beneficiario: ${beneficiario?.nombre_apellido || 'No encontrado'}\n` +
+      `Enfermedad Crónica: ${dependiente.enfermedad_cronica}\n` +
+      `Discapacidad: ${dependiente.discapacidad}`,
       [{ text: 'Cerrar' }]
     );
   };
 
-  const handleDeactivateBeneficiario = (beneficiario: Beneficiario) => {
+  const handleDeleteDependiente = (dependiente: Dependiente) => {
     Alert.alert(
-      'Desactivar Beneficiario',
-      `¿Estás seguro de que deseas desactivar a ${beneficiario.nombre_apellido}?`,
+      'Eliminar Dependiente',
+      `¿Estás seguro de que deseas eliminar a ${dependiente.nombre_apellido}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Desactivar',
+          text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
             try {
-              await updateEstatusBeneficiario(beneficiario.cedula, 'INACTIVO');
-              Alert.alert('Éxito', 'Beneficiario desactivado correctamente');
+              await deleteDependiente(dependiente.cedula);
+              Alert.alert('Éxito', 'Dependiente eliminado correctamente');
             } catch (error) {
-              Alert.alert('Error', error instanceof Error ? error.message : 'Error al desactivar beneficiario');
+              Alert.alert('Error', error instanceof Error ? error.message : 'Error al eliminar dependiente');
             }
           }
         }
@@ -90,20 +105,20 @@ export default function BeneficiariosActivosScreen() {
     );
   };
 
-  const handleSubmitForm = async (data: BeneficiarioForm) => {
+  const handleSubmitForm = async (data: DependienteForm) => {
     try {
       setModalLoading(true);
       
-      if (selectedBeneficiario) {
-        await updateBeneficiario(selectedBeneficiario.cedula, data);
-        Alert.alert('Éxito', 'Beneficiario actualizado correctamente');
+      if (selectedDependiente) {
+        await updateDependiente(selectedDependiente.cedula, data);
+        Alert.alert('Éxito', 'Dependiente actualizado correctamente');
       } else {
-        await createBeneficiario(data);
-        Alert.alert('Éxito', 'Beneficiario creado correctamente');
+        await createDependiente(data);
+        Alert.alert('Éxito', 'Dependiente creado correctamente');
       }
       
       setModalVisible(false);
-      setSelectedBeneficiario(undefined);
+      setSelectedDependiente(undefined);
     } catch (error) {
       throw error;
     } finally {
@@ -113,7 +128,10 @@ export default function BeneficiariosActivosScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadBeneficiarios();
+    const activeBeneficiarios = beneficiarios.filter(b => b.estatus === 'ACTIVO');
+    for (const beneficiario of activeBeneficiarios) {
+      await loadDependientes(beneficiario.cedula);
+    }
     setSearchQuery('');
     setRefreshing(false);
   };
@@ -125,8 +143,8 @@ export default function BeneficiariosActivosScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Beneficiarios Activos</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleCreateBeneficiario}>
+        <Text style={styles.title}>Dependientes</Text>
+        <TouchableOpacity style={styles.addButton} onPress={handleCreateDependiente}>
           <Ionicons name="add" size={24} color="white" />
         </TouchableOpacity>
       </View>
@@ -135,7 +153,7 @@ export default function BeneficiariosActivosScreen() {
         <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Buscar por nombre o cédula..."
+          placeholder="Buscar por nombre, cédula o beneficiario..."
           value={searchQuery}
           onChangeText={handleSearch}
         />
@@ -152,15 +170,15 @@ export default function BeneficiariosActivosScreen() {
       {/* Stats Card */}
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{beneficiariosActivos.length}</Text>
-          <Text style={styles.statLabel}>Beneficiarios Activos</Text>
+          <Text style={styles.statNumber}>{filteredDependientes.length}</Text>
+          <Text style={styles.statLabel}>Total Dependientes</Text>
         </View>
       </View>
 
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadBeneficiarios}>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
             <Text style={styles.retryText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
@@ -172,37 +190,39 @@ export default function BeneficiariosActivosScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {beneficiariosActivos.length === 0 && !loading ? (
+        {filteredDependientes.length === 0 && !loading ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={64} color="#ccc" />
+            <Ionicons name="person-add-outline" size={64} color="#ccc" />
             <Text style={styles.emptyText}>
-              {searchQuery ? 'No se encontraron beneficiarios activos' : 'No hay beneficiarios activos registrados'}
+              {searchQuery ? 'No se encontraron dependientes' : 'No hay dependientes registrados'}
             </Text>
             {!searchQuery && (
-              <TouchableOpacity style={styles.emptyButton} onPress={handleCreateBeneficiario}>
-                <Text style={styles.emptyButtonText}>Agregar primer beneficiario</Text>
+              <TouchableOpacity style={styles.emptyButton} onPress={handleCreateDependiente}>
+                <Text style={styles.emptyButtonText}>Agregar primer dependiente</Text>
               </TouchableOpacity>
             )}
           </View>
         ) : (
-          beneficiariosActivos.map((beneficiario) => (
-            <BeneficiarioCard
-              key={beneficiario.cedula}
-              beneficiario={beneficiario}
-              onView={() => handleViewBeneficiario(beneficiario)}
-              onEdit={() => handleEditBeneficiario(beneficiario)}
-              onToggleStatus={() => handleDeactivateBeneficiario(beneficiario)}
+          filteredDependientes.map((dependiente) => (
+            <DependienteCard
+              key={dependiente.cedula}
+              dependiente={dependiente}
+              beneficiario={beneficiarios.find(b => b.cedula === dependiente.cedula_beneficiario)}
+              onView={() => handleViewDependiente(dependiente)}
+              onEdit={() => handleEditDependiente(dependiente)}
+              onDelete={() => handleDeleteDependiente(dependiente)}
             />
           ))
         )}
       </ScrollView>
 
-      <BeneficiarioModal
+      <DependienteModal
         visible={modalVisible}
-        beneficiario={selectedBeneficiario}
+        dependiente={selectedDependiente}
+        beneficiarios={beneficiarios.filter(b => b.estatus === 'ACTIVO')}
         onClose={() => {
           setModalVisible(false);
-          setSelectedBeneficiario(undefined);
+          setSelectedDependiente(undefined);
         }}
         onSubmit={handleSubmitForm}
         loading={modalLoading}
@@ -280,7 +300,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#9C27B0',
     marginBottom: 4,
   },
   statLabel: {

@@ -49,8 +49,8 @@ export default function HomeScreen() {
 
   // Calculate real-time stats
   const totalBeneficiarios = beneficiarios.length;
-  const beneficiariosActivos = beneficiarios.filter(b => b.estatus === 'Activo').length;
-  const beneficiariosInactivos = beneficiarios.filter(b => b.estatus === 'Inactivo').length;
+  const beneficiariosActivos = beneficiarios.filter(b => b.estatus === 'ACTIVO').length;
+  const beneficiariosInactivos = beneficiarios.filter(b => b.estatus === 'INACTIVO').length;
   
   // Calcular distribución por género
   const hombres = beneficiarios.filter(b => b.genero === 'Masculino').length;

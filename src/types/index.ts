@@ -13,7 +13,7 @@ export interface Beneficiario {
   id_calle: number;
   nom_calle?: string; // Solo en respuestas
   estado_civil: string;
-  estatus: 'Activo' | 'Inactivo';
+  estatus: 'ACTIVO' | 'INACTIVO';
 }
 
 export interface Dependiente {
@@ -37,32 +37,6 @@ export interface Calle {
   id_com: number;
 }
 
-export interface BeneficiarioConDependientes {
-  beneficiario: Beneficiario;
-  dependientes: Dependiente[];
-}
-
-export interface HabitantesPorCalle {
-  calle: string;
-  total_habitantes: number;
-  habitantes: {
-    cedula: string;
-    nombre_apellido: string;
-    numero_casa: string;
-  }[];
-}
-
-export interface RangoEdad {
-  rango: string;
-  total: number;
-  personas: {
-    cedula: string;
-    nombre_apellido: string;
-    fecha_nacimiento: string;
-    edad: number;
-  }[];
-}
-
 export interface ApiResponse<T = any> {
   success?: boolean;
   data?: T;
@@ -84,7 +58,7 @@ export interface BeneficiarioForm {
   numero_casa: string;
   id_calle: number;
   estado_civil: string;
-  estatus: 'Activo' | 'Inactivo';
+  estatus: 'ACTIVO' | 'INACTIVO';
 }
 
 export interface DependienteForm {
@@ -124,4 +98,4 @@ export const PARENTESCOS = [
   'Hermana',
   'Otro'
 ] as const;
-export const ESTATUS = ['Activo', 'Inactivo'] as const;
+export const ESTATUS = ['ACTIVO', 'INACTIVO'] as const;

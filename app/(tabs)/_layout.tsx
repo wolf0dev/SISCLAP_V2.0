@@ -42,11 +42,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="reportes"
+        name="dependientes"
         options={{
-          title: 'Reportes',
+          title: 'Dependientes',
           tabBarIcon: ({ size, color }) => (
-            <Ionicons name="bar-chart" size={size} color={color} />
+            <Ionicons name="person-add" size={size} color={color} />
           ),
         }}
       />

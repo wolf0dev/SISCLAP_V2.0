@@ -21,7 +21,7 @@ export default function BeneficiariosInactivosScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   // Filter only inactive beneficiarios
-  const beneficiariosInactivos = beneficiarios.filter(b => b.estatus === 'Inactivo');
+  const beneficiariosInactivos = beneficiarios.filter(b => b.estatus === 'INACTIVO');
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -62,7 +62,7 @@ export default function BeneficiariosInactivosScreen() {
           text: 'Activar',
           onPress: async () => {
             try {
-              await updateEstatusBeneficiario(beneficiario.cedula, 'Activo');
+              await updateEstatusBeneficiario(beneficiario.cedula, 'ACTIVO');
               Alert.alert('Éxito', 'Beneficiario activado correctamente');
             } catch (error) {
               Alert.alert('Error', error instanceof Error ? error.message : 'Error al activar beneficiario');

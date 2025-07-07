@@ -176,7 +176,7 @@ export const beneficiariosApi = {
     });
   },
 
-  async updateEstatus(cedula: string, estatus: 'Activo' | 'Inactivo'): Promise<ApiResponse<void>> {
+  async updateEstatus(cedula: string, estatus: 'ACTIVO' | 'INACTIVO'): Promise<ApiResponse<void>> {
     return makeRequest<void>(`/beneficiarios/estatus/${cedula}`, {
       method: 'PUT',
       body: JSON.stringify({ estatus }),
