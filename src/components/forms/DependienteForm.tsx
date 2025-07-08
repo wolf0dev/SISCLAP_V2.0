@@ -128,7 +128,6 @@ export default function DependienteForm({
               placeholder="12345678"
               keyboardType="numeric"
               maxLength={8}
-              editable={!dependiente} // No editable si es actualización
             />
             {errors.cedula && <Text style={styles.errorText}>{errors.cedula}</Text>}
           </View>
