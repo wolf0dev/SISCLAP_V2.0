@@ -7,7 +7,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DependienteForm from '../forms/DependienteForm';
+import DependienteForm from '@/components/forms/DependienteForm';
 import { Dependiente, DependienteForm as DependienteFormType, Beneficiario } from '../../types';
 
 interface DependienteModalProps {

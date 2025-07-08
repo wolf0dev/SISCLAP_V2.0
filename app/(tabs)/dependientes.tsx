@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useDependientes } from '../../src/hooks/useDependientes';
 import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
-import DependienteCard from '../../src/components/cards/DependienteCard';
-import DependienteModal from '../../src/components/modals/DependienteModal';
+import DependienteCard from '@/components/cards/DependienteCard';
+import DependienteModal from '@/components/modals/DependienteModal';
 import LoadingScreen from '../../src/components/common/LoadingScreen';
 import { Dependiente, DependienteForm } from '../../src/types';
 
