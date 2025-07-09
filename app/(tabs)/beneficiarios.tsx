@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
 import BeneficiarioCard from '../../src/components/cards/BeneficiarioCard';
 import BeneficiarioModal from '../../src/components/modals/BeneficiarioModal';
+import BeneficiarioDetailModal from '../../src/components/modals/BeneficiarioDetailModal';
 import LoadingScreen from '../../src/components/common/LoadingScreen';
 import { Beneficiario, BeneficiarioForm } from '../../src/types';
 
@@ -25,6 +26,8 @@ export default function BeneficiariosActivosScreen() {
   const [selectedBeneficiario, setSelectedBeneficiario] = useState<Beneficiario | undefined>();
   const [modalLoading, setModalLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedBeneficiarioForDetail, setSelectedBeneficiarioForDetail] = useState<Beneficiario | null>(null);
 
   // Filter only active beneficiarios
   const beneficiariosActivos = beneficiarios.filter(b => b.estatus === 'ACTIVO');
@@ -49,23 +52,8 @@ export default function BeneficiariosActivosScreen() {
   };
 
   const handleViewBeneficiario = (beneficiario: Beneficiario) => {
-    const edad = new Date().getFullYear() - new Date(beneficiario.fecha_nacimiento).getFullYear();
-    
-    Alert.alert(
-      `${beneficiario.nombre_apellido}`,
-      `Cédula: ${beneficiario.cedula}\n` +
-      `Edad: ${edad} años\n` +
-      `Género: ${beneficiario.genero}\n` +
-      `Estado Civil: ${beneficiario.estado_civil}\n` +
-      `Profesión: ${beneficiario.profesion}\n` +
-      `Instrucción: ${beneficiario.grado_instruccion}\n` +
-      `Teléfono: ${beneficiario.telefono}\n` +
-      `Dirección: ${beneficiario.nom_calle || `Calle ${beneficiario.id_calle}`}, Casa ${beneficiario.numero_casa}\n` +
-      `Enfermedad Crónica: ${beneficiario.enfermedad_cronica}\n` +
-      `Discapacidad: ${beneficiario.discapacidad}\n` +
-      `Estado: ${beneficiario.estatus}`,
-      [{ text: 'Cerrar' }]
-    );
+    setSelectedBeneficiarioForDetail(beneficiario);
+    setDetailModalVisible(true);
   };
 
   const handleDeactivateBeneficiario = (beneficiario: Beneficiario) => {
@@ -206,6 +194,15 @@ export default function BeneficiariosActivosScreen() {
         }}
         onSubmit={handleSubmitForm}
         loading={modalLoading}
+      />
+
+      <BeneficiarioDetailModal
+        visible={detailModalVisible}
+        beneficiario={selectedBeneficiarioForDetail}
+        onClose={() => {
+          setDetailModalVisible(false);
+          setSelectedBeneficiarioForDetail(null);
+        }}
       />
     </SafeAreaView>
   );

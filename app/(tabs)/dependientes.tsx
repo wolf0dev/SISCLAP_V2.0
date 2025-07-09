@@ -6,6 +6,7 @@ import { useDependientes } from '../../src/hooks/useDependientes';
 import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
 import DependienteCard from '@/components/cards/DependienteCard';
 import DependienteModal from '@/components/modals/DependienteModal';
+import DependienteDetailModal from '../../src/components/modals/DependienteDetailModal';
 import LoadingScreen from '../../src/components/common/LoadingScreen';
 import { Dependiente, DependienteForm } from '../../src/types';
 
@@ -26,6 +27,8 @@ export default function DependientesScreen() {
   const [selectedDependiente, setSelectedDependiente] = useState<Dependiente | undefined>();
   const [modalLoading, setModalLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedDependienteForDetail, setSelectedDependienteForDetail] = useState<Dependiente | null>(null);
 
   // Get all dependientes from all beneficiarios
   React.useEffect(() => {
@@ -63,24 +66,8 @@ export default function DependientesScreen() {
   };
 
   const handleViewDependiente = (dependiente: Dependiente) => {
-    const edad = new Date().getFullYear() - new Date(dependiente.fecha_nacimiento).getFullYear();
-    const beneficiario = beneficiarios.find(b => b.cedula === dependiente.cedula_beneficiario);
-    
-    Alert.alert(
-      `${dependiente.nombre_apellido}`,
-      `Cédula: ${dependiente.cedula}\n` +
-      `Edad: ${edad} años\n` +
-      `Género: ${dependiente.genero}\n` +
-      `Estado Civil: ${dependiente.estado_civil}\n` +
-      `Profesión: ${dependiente.profesion}\n` +
-      `Instrucción: ${dependiente.grado_instruccion}\n` +
-      `Teléfono: ${dependiente.telefono}\n` +
-      `Parentesco: ${dependiente.parentesco}\n` +
-      `Beneficiario: ${beneficiario?.nombre_apellido || 'No encontrado'}\n` +
-      `Enfermedad Crónica: ${dependiente.enfermedad_cronica}\n` +
-      `Discapacidad: ${dependiente.discapacidad}`,
-      [{ text: 'Cerrar' }]
-    );
+    setSelectedDependienteForDetail(dependiente);
+    setDetailModalVisible(true);
   };
 
   const handleDeleteDependiente = (dependiente: Dependiente) => {
@@ -226,6 +213,16 @@ export default function DependientesScreen() {
         }}
         onSubmit={handleSubmitForm}
         loading={modalLoading}
+      />
+
+      <DependienteDetailModal
+        visible={detailModalVisible}
+        dependiente={selectedDependienteForDetail}
+        beneficiario={selectedDependienteForDetail ? beneficiarios.find(b => b.cedula === selectedDependienteForDetail.cedula_beneficiario) : undefined}
+        onClose={() => {
+          setDetailModalVisible(false);
+          setSelectedDependienteForDetail(null);
+        }}
       />
     </SafeAreaView>
   );

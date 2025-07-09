@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useBeneficiarios } from '../../src/hooks/useBeneficiarios';
 import BeneficiarioCard from '../../src/components/cards/BeneficiarioCard';
+import BeneficiarioDetailModal from '../../src/components/modals/BeneficiarioDetailModal';
 import LoadingScreen from '../../src/components/common/LoadingScreen';
 import { Beneficiario } from '../../src/types';
 
@@ -19,6 +20,8 @@ export default function BeneficiariosInactivosScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedBeneficiarioForDetail, setSelectedBeneficiarioForDetail] = useState<Beneficiario | null>(null);
 
   // Filter only inactive beneficiarios
   const beneficiariosInactivos = beneficiarios.filter(b => b.estatus === 'INACTIVO');
@@ -33,23 +36,8 @@ export default function BeneficiariosInactivosScreen() {
   };
 
   const handleViewBeneficiario = (beneficiario: Beneficiario) => {
-    const edad = new Date().getFullYear() - new Date(beneficiario.fecha_nacimiento).getFullYear();
-    
-    Alert.alert(
-      `${beneficiario.nombre_apellido}`,
-      `Cédula: ${beneficiario.cedula}\n` +
-      `Edad: ${edad} años\n` +
-      `Género: ${beneficiario.genero}\n` +
-      `Estado Civil: ${beneficiario.estado_civil}\n` +
-      `Profesión: ${beneficiario.profesion}\n` +
-      `Instrucción: ${beneficiario.grado_instruccion}\n` +
-      `Teléfono: ${beneficiario.telefono}\n` +
-      `Dirección: ${beneficiario.nom_calle || `Calle ${beneficiario.id_calle}`}, Casa ${beneficiario.numero_casa}\n` +
-      `Enfermedad Crónica: ${beneficiario.enfermedad_cronica}\n` +
-      `Discapacidad: ${beneficiario.discapacidad}\n` +
-      `Estado: ${beneficiario.estatus}`,
-      [{ text: 'Cerrar' }]
-    );
+    setSelectedBeneficiarioForDetail(beneficiario);
+    setDetailModalVisible(true);
   };
 
   const handleActivateBeneficiario = (beneficiario: Beneficiario) => {
@@ -158,6 +146,15 @@ export default function BeneficiariosInactivosScreen() {
           ))
         )}
       </ScrollView>
+
+      <BeneficiarioDetailModal
+        visible={detailModalVisible}
+        beneficiario={selectedBeneficiarioForDetail}
+        onClose={() => {
+          setDetailModalVisible(false);
+          setSelectedBeneficiarioForDetail(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
